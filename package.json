@@ -1,0 +1,34 @@
+{
+  "name": "promenade",
+  "version": "0.0.1",
+  "description": "Yet another Backbone++ MVC framework",
+  "main": "lib/promenade.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-requirejs": "~0.4.1",
+    "grunt-contrib-watch": "~0.4.4",
+    "grunt-mocha-phantom-hack": "~0.0.1",
+    "grunt-contrib-jshint": "~0.6.0"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/dabohealth/promenade.git"
+  },
+  "keywords": [
+    "backbone",
+    "mvc",
+    "framework"
+  ],
+  "author": "Chris Joel",
+  "license": "None",
+  "bugs": {
+    "url": "https://github.com/dabohealth/promenade/issues"
+  }
+}

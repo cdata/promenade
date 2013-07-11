@@ -1,0 +1,23 @@
+{
+  "name": "promenade",
+  "version": "0.0.1",
+  "main": "lib/promenade.js",
+  "dependencies": {
+    "jquery": "~2.0.3",
+    "backbone": "~1.0.0",
+    "underscore": "~1.5.1",
+    "requirejs": "~2.1.8"
+  },
+  "devDependencies": {
+    "sinonjs": "~1.7.1",
+    "mocha": "~1.12.0"
+  },
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "components",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

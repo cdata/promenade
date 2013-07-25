@@ -3,11 +3,12 @@
 
   define(['promenade/view', 'promenade/view/collection', 'promenade/model',
           'promenade/controller', 'promenade/application', 'promenade/region',
-          'promenade/object'],
+          'promenade/object', 'promenade/collection'],
          function(View, CollectionView, Model,  Controller, Application,
-                  Region, PromenadeObject) {
+                  Region, PromenadeObject, Collection) {
     return {
       Model: Model,
+      Collection: Collection,
       View: View,
       CollectionView: CollectionView,
       Controller: Controller,

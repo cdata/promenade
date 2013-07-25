@@ -24,6 +24,7 @@ define(['../promenade'], function() {
   require(['test/view',
            'test/view/collection',
            'test/model',
+           'test/collection',
            'test/controller',
            'test/application',
            'test/region',

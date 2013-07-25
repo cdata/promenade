@@ -25,7 +25,9 @@ define(['../promenade'], function() {
            'test/view/collection',
            'test/model',
            'test/controller',
-           'test/application'],
+           'test/application',
+           'test/region',
+           'test/object'],
            function() {
              mocha.run();
            });

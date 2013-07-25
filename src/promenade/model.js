@@ -3,11 +3,16 @@ define(['backbone', 'require'],
   'use strict';
 
   var Model = Backbone.Model.extend({
+
+
     types: {},
+
+
     parse: function(data) {
       var TypeClass;
+      var type;
 
-      for (var type in this.types) {
+      for (type in this.types) {
         TypeClass = this.types[type];
 
         if (_.isString(TypeClass)) {
@@ -21,10 +26,13 @@ define(['backbone', 'require'],
 
       return data;
     },
+
+
     set: function(key, value, options) {
       var attrs;
       var attr;
       var Type;
+      var current;
 
       if (typeof key === 'object') {
         attrs = key;
@@ -38,12 +46,21 @@ define(['backbone', 'require'],
         value = attrs[attr];
 
         if (Type && value && !(value instanceof Type)) {
-          attrs[attr] = new Type(value);
+          current = this.get(attr);
+
+          if (current && current instanceof Type) {
+            current.set(value);
+            delete attrs[attr];
+          } else {
+            attrs[attr] = new Type(value);
+          }
         }
       }
 
       return Backbone.Model.prototype.set.call(this, attrs, options);
     },
+
+
     toJSON: function() {
       var data = Backbone.Model.prototype.toJSON.apply(this, arguments);
 

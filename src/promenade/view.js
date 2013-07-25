@@ -1,10 +1,13 @@
-define(['backbone', 'templates', 'underscore'],
-       function(Backbone, templates, _) {
+define(['backbone', 'templates', 'underscore', 'promenade/region'],
+       function(Backbone, templates, _, Region) {
   'use strict';
 
   var View = Backbone.View.extend({
+
+
     initialize: function(options) {
       var model;
+      var region;
 
       Backbone.View.prototype.initialize.apply(this, arguments);
 
@@ -17,40 +20,57 @@ define(['backbone', 'templates', 'underscore'],
         this.templateFactory = templates[this.template];
       }
 
-      this.layout = this.layout || {};
-      this.regions = {};
-      this.$regions = {};
-      this.subViews = {};
-      this.rendered = false;
+      this.layout = options.layout || this.layout || {};
 
-      if(!this.hasModel()) {
-        return;
-      }
-
-      model = this.getModel();
-
-      for (var eventName in this.modelEvents) {
-        this.listenTo(model, eventName, this[this.modelEvents[eventName]]);
+      for (region in this.layout) {
+        this[this.getRegionProperty(region)] = new Region({
+          superview: this,
+          selector: this.layout[region]
+        });
       }
     },
-    modelEvents: {
-      'add': 'render',
-      'remove': 'render',
-      'reset': 'render',
-      'change': 'render'
+
+
+    delegateEvents: function() {
+      var model;
+
+      Backbone.View.prototype.delegateEvents.apply(this, arguments);
+
+      if (this.hasModel()) {
+        model = this.getModel();
+
+        for (var eventName in this.modelEvents) {
+          this.listenTo(model, eventName, this[this.modelEvents[eventName]]);
+        }
+      }
+
+      return this;
     },
-    template: '',
+
+
+    undelegateEvents: function() {
+      var model;
+
+      Backbone.View.prototype.undelegateEvents.apply(this, arguments);
+
+      if(this.hasModel()) {
+        model = this.getModel();
+
+        for (var eventName in this.modelEvents) {
+          this.stopListening(model, eventName, this[this.modelEvents[eventName]]);
+        }
+      }
+
+      return this;
+    },
+
+
     render: function(recursive) {
-      var region;
-      var subview;
       var data;
       var html;
+      var region;
 
       this.trigger('before:render');
-
-      for (region in this.subViews) {
-        this.subViews[region].$el.detach();
-      }
 
       if (this.templateFactory) {
         data = this.serializeModelData();
@@ -59,71 +79,81 @@ define(['backbone', 'templates', 'underscore'],
         this.$el.html(html);
       }
 
-      for (region in this.layout) {
-        if (!this.layout[region]) {
-          continue;
+      if (recursive) {
+        for (region in this.layout) {
+          this.getRegion(region).renderSubview(recursive);
         }
-
-        this.$regions[region] = this.$(this.layout[region]).eq(0);
-        this.regions[region] = this.$regions[region].get(0);
       }
 
-      this.$regions.self = this.$el;
-      this.regions.self = this.el;
-
-      for (region in this.subViews) {
-        subview = this.subViews[region];
-
-        if (recursive) {
-          if (subview.deepRender) {
-            subview.deepRender();
-          } else {
-            subview.render();
-          }
-        } else if (subview.rendered === false) {
-          subview.render();
-        }
-
-        this.$regions[region].append(subview.$el);
-      }
-
-      this.rendered = true;
       this.trigger('render');
 
       return this;
     },
+
+
+    remove: function() {
+      this.undelegateEvents();
+      Backbone.View.prototype.remove.apply(this, arguments);
+      return this;
+    },
+
+
+    template: '',
+
+
+    modelEvents: {
+      'add': 'render',
+      'remove': 'render',
+      'reset': 'render',
+      'change': 'render'
+    },
+
+
+    detach: function() {
+      this.undelegateEvents();
+      this.$el.detach();
+      return this;
+    },
+
+
+    attachTo: function($parent) {
+      this.$el.appendTo($parent);
+      this.delegateEvents();
+      return this;
+    },
+
+
     deepRender: function() {
       return this.render(true);
     },
+
+
     hasModel: function() {
       return !!this.getModel();
     },
+
+
     getModel: function() {
       return this.model || this.collection;
     },
+
+
+    getRegion: function(region) {
+      return this[this.getRegionProperty(region)];
+    },
+
+
+    getRegionProperty: function(region) {
+      return region + 'Region';
+    },
+
+
     serializeModelData: function() {
       if (!this.hasModel()) {
         return {};
       }
 
       return this.getModel().toJSON();
-    },
-    setSubview: function(region, view) {
-
-      if (!_.isString(region)) {
-        view = region;
-        region = 'self';
-      }
-
-      if (this.subViews[region]) {
-        this.subViews[region].detach();
-      }
-
-      if (view && this.$regions[region]) {
-        this.$regions[region].append(view.render().$el);
-      }
-
-      this.subViews[region] = view;
     }
   });
 

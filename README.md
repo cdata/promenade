@@ -4,21 +4,20 @@ Promenade is a Backbone++ MVC framework, intended to support the rapid developme
 
 ## Features & characteristics
 
- - Built for an AMD module pipeline
+ - Built for an AMD pipeline, includes deployable builds for non-AMD projects.
 
 ### Application
 
  - Extends and enhances Backbone.Router
- - Named controllers are associated with an application
- - Declared routes are associated with named controllers
- - Controller construct includes basic inheritance
+ - Declared controllers define supported routes internally
+ - Controllers furnished with an app reference upon instantiation.
 
 ### View
 
  - Template rendering baked-in, just declare a template name
  - Declare regions via a layout map
  - Region-based subview handling
- - Subview-sensitive event delegation and re-rendering
+ - Subview-, render- and attachment-sensitive event delegation
  - Declarable model events
 
 ### CollectionView

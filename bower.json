@@ -1,12 +1,13 @@
 {
   "name": "promenade",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "lib/promenade.js",
   "dependencies": {
     "jquery": "~2.0.3",
     "backbone": "~1.0.0",
     "underscore": "~1.5.1",
-    "requirejs": "~2.1.8"
+    "requirejs": "~2.1.8",
+    "almond": "~0.2.5"
   },
   "devDependencies": {
     "sinonjs": "~1.7.1",

@@ -1,14 +1,36 @@
-define(['backbone', 'promenade', 'promenade/controller'],
-       function(Backbone, Promenade, Controller) {
+define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'],
+       function(Backbone, Promenade, Controller, Application) {
 
   describe('Promenade.Controller', function() {
 
     var MyController;
+    var MyApplication;
+    var app;
 
     beforeEach(function() {
-      MyController = Controller.extend({
-        foobar: function() {}
+      MyController = Promenade.Controller.extend({
+        defineRoutes: function() {
+          this.handle('foo', 'foo');
+          this.handle('bar', 'bar', function() {
+            this.resource('baz', 'barBaz');
+          });
+        },
+        foo: function() {},
+        bar: function() {},
+        barBaz: function(baz) {}
       });
+      MyApplication = Application.extend({
+        controllers: [
+          MyController
+        ]
+      });
+      app = new MyApplication();
+      Backbone.history.start();
+    });
+
+    afterEach(function() {
+      Backbone.history.stop();
+      Backbone.history.handlers = [];
     });
 
     it('is defined', function() {
@@ -16,44 +38,20 @@ define(['backbone', 'promenade', 'promenade/controller'],
       expect(Controller).to.be.ok();
     });
 
-    describe('when registered with an application', function() {
-      var Application;
-      var app;
-      var controller;
+    describe('when instantiated', function() {
+
+      var myController;
 
       beforeEach(function() {
-        controller = new MyController();
-        Application = Promenade.Application.extend({
-          routes: {
-            'foo/:bar': 'controller#foobar'
-          },
-          controllers: {
-            'controller': controller
-          }
-        });
-
-        sinon.spy(controller, 'foobar');
-
-        app = new Application();
-        app.navigate('foo/bar', { trigger: true });
+        myController = new MyController(app);
       });
 
-      afterEach(function() {
-        app.navigate('');
-        Backbone.history.stop();
-        controller.foobar.restore();
-      });
-
-      it('calls the appropriate handler on the controller', function() {
-        expect(controller.foobar.called).to.be(true);
-      });
-
-      it('receives a reference to the application as its first argument', function() {
-        expect(controller.foobar.args[0][0]).to.be(app);
-      });
-
-      it('receives any route parameters as arguments', function() {
-        expect(controller.foobar.args[0][1]).to.be.eql('bar');
+      it('defines a series of routes', function() {
+        var count = 0;
+        for (var routeString in myController.routes) {
+          ++count;
+        }
+        expect(count).to.be.eql(3);
       });
     });
   });

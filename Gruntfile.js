@@ -45,10 +45,26 @@ module.exports = function(grunt) {
           useStrict: true,
           exclude: ['backbone', 'underscore', 'jquery', 'templates']
         }
+      },
+      norequire: {
+        options: {
+          name: project,
+          baseUrl: 'src/',
+          mainConfigFile: 'src/config.js',
+          out: 'lib/' + project + '-norequire.js',
+          optimize: 'none',
+          useStrict: true,
+          exclude: ['backbone', 'underscore', 'jquery', 'templates'],
+          include: ['support/almond', 'support/shim'],
+          wrap: {
+            start: '(function(global) {',
+            end: 'global.Promenade = require(\'promenade\');\n})(this);'
+          }
+        }
       }
     },
     jshint: {
-      all: ['src/**/*.js', '!src/support/*.js']
+      all: ['src/**/*.js', '!src/support/*.js', 'test/promenade/**/*.js']
     },
     mocha: {
       all: ['test/index.html']

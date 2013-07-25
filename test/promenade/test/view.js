@@ -32,10 +32,10 @@ define(['backbone', 'promenade', 'promenade/view'],
 
     describe('when rendered', function() {
 
-      it('is marked as rendered', function() {
+      it('has a root element', function() {
         var myView = new MyView().render();
 
-        expect(myView.rendered).to.be.eql(true);
+        expect(myView.el).to.be.ok();
       });
 
       describe('with a declared template', function() {
@@ -52,8 +52,8 @@ define(['backbone', 'promenade', 'promenade/view'],
           it('defines regions based on the layout', function() {
             var myView = new MyView({ model: myModel }).render();
 
-            for (var region in View.prototype.layout) {
-              expect(view.regions[region]).to.be.ok();
+            for (var region in MyView.prototype.layout) {
+              expect(myView[myView.getRegionProperty(region)]).to.be.ok();
             }
           });
 
@@ -73,70 +73,51 @@ define(['backbone', 'promenade', 'promenade/view'],
               mySubviewRenderSpy.restore();
             });
 
-            it('renders the subview', function() {
-              myView.setSubview(mySubview);
-              expect(mySubviewRenderSpy.calledOnce).to.be.eql(true);
-            });
-
-            it('appends the subview to the root element by default', function() {
-              myView.setSubview(mySubview);
-              expect(mySubview.el.parentNode).to.be.eql(myView.el);
-            });
-
-            it('appends the subview to a region if specified', function() {
-              myView.setSubview('foo', mySubview);
-              expect(mySubview.el.parentNode).to.be.eql(myView.regions.foo);
+            it('does not automatically render the subview', function() {
+              myView.fooRegion.show(mySubview);
+              expect(mySubviewRenderSpy.called).to.be.eql(false);
             });
 
             describe('and then re-rendered', function() {
 
               var subviewDetachSpy;
               var viewHtmlSpy;
-              var viewAppendSpy;
+              var regionAppendSpy;
 
               beforeEach(function() {
                 subviewDetachSpy = sinon.spy(mySubview.$el, 'detach');
                 viewHtmlSpy = sinon.spy(myView.$el, 'html');
-                viewAppendSpy = sinon.spy(myView.$el, 'append');
+                regionAppendSpy = sinon.spy(myView.fooRegion.$container, 'append');
               });
 
               afterEach(function() {
                 subviewDetachSpy.restore();
                 viewHtmlSpy.restore();
-                viewAppendSpy.restore();
+                regionAppendSpy.restore();
               });
 
               it('detaches the subview before re-rendering', function() {
-                myView.setSubview(mySubview);
+                myView.fooRegion.show(mySubview);
                 myView.render();
 
                 sinon.assert.callOrder(subviewDetachSpy, viewHtmlSpy);
               });
 
-              it('re-attaches the subview', function() {
-                myView.setSubview(mySubview);
-                myView.render();
-
-                expect(viewAppendSpy.calledTwice).to.be.eql(true);
-                expect(viewAppendSpy.args[1][0]).to.be.eql(mySubview.$el);
-                sinon.assert.callOrder(viewHtmlSpy, viewAppendSpy);
-              });
-
               it('re-attaches the subview to the appropriate region', function() {
-                myView.setSubview('foo', mySubview);
+                myView.fooRegion.show(mySubview);
                 myView.render();
 
-                expect(viewAppendSpy.called).to.be.eql(false);
-                expect(mySubview.el.parentNode).to.be(myView.regions.foo);
+                expect(mySubview.el.parentNode).to.be.ok();
+                expect(mySubview.el.parentNode).to.be(myView.fooRegion.$container.get(0));
               });
 
               describe('deeply', function() {
 
                 it('calls the subview\'s render', function() {
-                  myView.setSubview(mySubview);
+                  myView.fooRegion.show(mySubview);
                   myView.deepRender();
 
-                  expect(mySubviewRenderSpy.calledTwice).to.be.eql(true);
+                  expect(mySubviewRenderSpy.called).to.be.eql(true);
                 });
               });
             });

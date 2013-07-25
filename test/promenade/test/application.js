@@ -5,6 +5,10 @@ define(['promenade', 'promenade/application'],
 
     var MyApplication;
     var MyController;
+    var MyModel;
+    var BazModel;
+    var VimModel;
+    var LurModel;
     var app;
 
     beforeEach(function() {
@@ -15,9 +19,26 @@ define(['promenade', 'promenade/application'],
         },
         foobar: function() {}
       });
+      BazModel = Promenade.Model.extend({
+        url: '/api/baz',
+        namespace: 'baz'
+      });
+      VimModel = Promenade.Model.extend({
+        url: '/api/vim',
+        namespace: 'vim'
+      });
+      LurModel = Promenade.Model.extend({
+        url: '/api/lur',
+        namespace: 'lur'
+      });
       MyApplication = Application.extend({
         controllers: [
           MyController
+        ],
+        models: [
+          BazModel,
+          VimModel,
+          LurModel
         ]
       });
       app = new MyApplication();
@@ -42,8 +63,62 @@ define(['promenade', 'promenade/application'],
 
     });
 
-    describe('when routes are declared', function() {
+    describe('models', function() {
 
+
+      describe('given a namespace registered with the application', function() {
+        it('creates a model instance for the namespace', function() {
+          expect(app.baz).to.be.ok();
+          expect(app.baz).to.be.a(BazModel);
+        });
+        describe('syncing data', function() {
+
+          var server;
+
+          beforeEach(function() {
+            server = sinon.fakeServer.create();
+            server.respondWith('GET', '/api/baz',
+                               [ 200,
+                                 { 'Content-Type': 'application/json' },
+                                 '{ "baz": { "some": "thing" }, "lur": { "foo": "bar" }, "notmatching": { "boom": "blam" }}' ]);
+          });
+
+          afterEach(function() {
+            server.restore();
+          });
+
+          it('sets the data on the model', function() {
+            app.baz.fetch();
+            server.respond();
+
+            expect(app.baz.get('some')).to.be.eql('thing');
+          });
+          describe('when the data is empty', function() {
+            beforeEach(function() {
+              sinon.spy(app.vim, 'set');
+            });
+
+            afterEach(function() {
+              app.vim.set.restore();
+            });
+            it('does not call set', function() {
+              app.baz.fetch();
+              server.respond();
+              expect(app.vim.set.called).to.be.eql(false);
+            });
+          });
+          describe('given data in a different namespace', function() {
+            it('sets the data on the related model', function() {
+              app.baz.fetch();
+              server.respond();
+              expect(app.lur.get('foo')).to.be.eql('bar');
+            });
+          });
+        });
+      });
+    });
+
+    describe('with named controllers', function() {
       it('registers a route for each route declared', function() {
         var fooRouteRegExp = app._routeToRegExp('foo');
         var barRouteRegExp = app._routeToRegExp('bar');
@@ -51,23 +126,20 @@ define(['promenade', 'promenade/application'],
         expect(Backbone.history.handlers[1].route).to.be.eql(barRouteRegExp);
       });
 
-      describe('with named controllers', function() {
+      describe('and a navigation event happens', function() {
+        beforeEach(function() {
+          sinon.spy(app.controllers[0], 'foobar');
+        });
 
-        describe('and a navigation event happens', function() {
-          beforeEach(function() {
-            sinon.spy(app.controllers[0], 'foobar');
-          });
+        afterEach(function() {
+          app.controllers[0].foobar.restore();
+          app.navigate('');
+        });
 
-          afterEach(function() {
-            app.controllers[0].foobar.restore();
-            app.navigate('');
-          });
-
-          it('calls a named method of the controller when specified',
-             function() {
-            app.navigate('foo', { trigger: true });
-            expect(app.controllers[0].foobar.callCount).to.be(1);
-          });
+        it('calls a named method of the controller when specified',
+           function() {
+          app.navigate('foo', { trigger: true });
+          expect(app.controllers[0].foobar.callCount).to.be(1);
         });
       });
     });

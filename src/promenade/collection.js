@@ -1,6 +1,7 @@
 define(['backbone', 'underscore'],
        function(Backbone, _) {
   var Collection = Backbone.Collection.extend({
+    namespace: '',
     get: function(id) {
       var model = Backbone.Collection.prototype.get.apply(this, arguments);
 
@@ -20,6 +21,17 @@ define(['backbone', 'underscore'],
 
         return model;
       }
+    },
+    parse: function(data) {
+      if (this.namespace) {
+        if (!(this.namespace in data)) {
+          throw new Error('Response data namespaced to "' + this.namespace + '" does not exist.');
+        }
+
+        data = data[this.namespace];
+      }
+
+      return data;
     }
   });
 

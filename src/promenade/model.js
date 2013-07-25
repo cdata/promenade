@@ -5,12 +5,21 @@ define(['backbone', 'require'],
   var Model = Backbone.Model.extend({
 
 
-    types: {},
+    namespace: '',
 
+    types: {},
 
     parse: function(data) {
       var TypeClass;
       var type;
+
+      if (this.namespace) {
+        if (!(this.namespace in data)) {
+          throw new Error('Response data namespaced to "' + this.namespace + '" does not exist.');
+        }
+
+        data = data[this.namespace];
+      }
 
       for (type in this.types) {
         TypeClass = this.types[type];

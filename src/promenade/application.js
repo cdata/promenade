@@ -27,12 +27,39 @@ define(['backbone', 'underscore', 'jquery'],
     controllers: [],
 
 
+    models: [],
+
+
     /** @inheritDoc */
     initialize: function(options) {
       Backbone.Router.prototype.initialize.apply(this, arguments);
 
+      this._initializeModels();
+
       this.$rootElement = $(this.root);
       this.rootElement = this.$rootElement.get(0);
+    },
+
+    _initializeModels: function() {
+      _.each(this.models, function(ModelClass, name) {
+        var model = new ModelClass();
+
+        this.listenTo(model, 'sync', this._onModelSync);
+        this[model.namespace] = model;
+
+      }, this);
+    },
+
+    _onModelSync: function(model, response, options) {
+      _.each(response, function(data, key) {
+        var otherModel = this[key];
+
+        if (key !== model.namespace &&
+            (otherModel instanceof Backbone.Model ||
+             otherModel instanceof Backbone.Collection)) {
+          otherModel.set(data);
+        }
+      }, this);
     },
 
 

@@ -33,15 +33,20 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
 
     delegateEvents: function() {
       var model;
+      var eventName;
 
       Backbone.View.prototype.delegateEvents.apply(this, arguments);
 
       if (this.hasModel()) {
         model = this.getModel();
 
-        for (var eventName in this.modelEvents) {
+        for (eventName in this.modelEvents) {
           this.listenTo(model, eventName, this[this.modelEvents[eventName]]);
         }
+      }
+
+      for (eventName in this.selfEvents) {
+        this.listenTo(this, eventName, this[this.selfEvents[eventName]]);
       }
 
       return this;
@@ -50,15 +55,20 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
 
     undelegateEvents: function() {
       var model;
+      var eventName;
 
       Backbone.View.prototype.undelegateEvents.apply(this, arguments);
 
       if(this.hasModel()) {
         model = this.getModel();
 
-        for (var eventName in this.modelEvents) {
+        for (eventName in this.modelEvents) {
           this.stopListening(model, eventName, this[this.modelEvents[eventName]]);
         }
+      }
+
+      for (eventName in this.selfEvents) {
+        this.stopListening(this, eventName, this[this.selfEvents[eventName]]);
       }
 
       return this;
@@ -107,6 +117,9 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
       'reset': 'render',
       'change': 'render'
     },
+
+
+    selfEvents: {},
 
 
     detach: function() {

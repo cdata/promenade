@@ -60,6 +60,26 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       this.subviews = _.without(this.subviews, views);
     },
 
+    insertAt: function(views, index) {
+      var PromenadeView = require('promenade/view');
+      var sibling = this.subviews[index];
+
+      if (!_.isArray(views)) {
+        views = [views];
+      }
+
+      if (!sibling) {
+        this.add(views);
+        return;
+      }
+
+      _.each(views, function(view) {
+        sibling.$el.before(view.$el);
+      }, this);
+
+      this.subviews.splice(index, 0, views);
+    },
+
     show: function(views) {
       var PromenadeView = require('promenade/view');
 

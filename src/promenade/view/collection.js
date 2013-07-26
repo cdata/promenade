@@ -3,57 +3,63 @@ define(['promenade/view'],
   'use strict';
 
   var CollectionView = View.extend({
-    itemView: null,
+    itemView: View,
     tagName: 'ul',
     initialize: function() {
       this.layout = _.defaults(this.layout || {}, {
         outlet: ''
       });
       this.items = {};
-      this.on('render', this.resetItems, this);
 
       View.prototype.initialize.apply(this, arguments);
     },
+    selfEvents: {
+      'render': 'resetItems'
+    },
     modelEvents: {
-      'add': 'addItemByModel',
-      'remove': 'removeItemByModel',
-      'reset': 'removeAllItems',
+      'add': '_addItemByModel',
+      'remove': '_removeItemByModel',
+      'reset': '_removeAllItems',
       'sort': 'resetItems'
     },
-    addItemByModel: function(model) {
-      var $container = this.getRegion('outlet').$container;
-      var siblings = $container.children(this.itemView.tagName);
+    _addItemByModel: function(model) {
+      var region = this.getRegion('outlet');
       var index = this.collection.indexOf(model);
       var view = new this.itemView({
         model: model
-      });
+      }).render();
 
       this.items[model.cid] = view;
 
-      if (siblings.length && siblings.length >= index) {
-        siblings.eq(index).before(view.render().$el);
-      } else {
-        $container.append(view.render().$el);
-      }
+      region.insertAt(view, index);
     },
-    removeItemByModel: function(model) {
+    _removeItemByModel: function(model) {
       var view = this.items[model.cid];
+      var region = this.getRegion('outlet');
 
       if (!view) {
         return;
       }
 
-      view.remove();
+      this.items[model.cid] = null;
+
+      region.remove(view);
+      view.undelegateEvents();
     },
-    removeAllItems: function() {
-      _.each(this.items, function(view, modelCid) {
-        view.remove();
-      });
+    _removeAllItems: function() {
+      var region = this.getRegion('outlet');
+
+      _.each(this.items, function(view) {
+        region.remove(view);
+        view.undelegateEvents();
+      }, this);
+
+      this.items = {};
     },
     resetItems: function() {
-      this.removeAllItems();
+      this._removeAllItems();
       this.collection.each(function(model) {
-        this.addItemByModel(model);
+        this._addItemByModel(model);
       }, this);
     }
   });

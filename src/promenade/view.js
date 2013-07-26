@@ -81,7 +81,7 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
 
       if (recursive) {
         for (region in this.layout) {
-          this.getRegion(region).renderSubview(recursive);
+          this.getRegion(region).renderSubviews(recursive);
         }
       }
 

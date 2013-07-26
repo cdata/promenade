@@ -1,7 +1,8 @@
-define(['backbone', 'underscore'],
-       function(Backbone, _) {
+define(['backbone', 'underscore', 'promenade/model'],
+       function(Backbone, _, Model) {
   var Collection = Backbone.Collection.extend({
     namespace: '',
+    model: Model,
     get: function(id) {
       var model = Backbone.Collection.prototype.get.apply(this, arguments);
 

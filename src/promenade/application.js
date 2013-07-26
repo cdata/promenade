@@ -41,7 +41,7 @@ define(['backbone', 'underscore', 'jquery'],
     },
 
     _initializeModels: function() {
-      _.each(this.models, function(ModelClass, name) {
+      _.each(this.models, function(ModelClass) {
         var model = new ModelClass();
 
         this.listenTo(model, 'sync', this._onModelSync);

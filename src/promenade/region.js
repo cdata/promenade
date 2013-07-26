@@ -1,5 +1,5 @@
-define(['promenade/object', 'promenade/view'],
-       function(PromenadeObject) {
+define(['promenade/object', 'promenade/view', 'underscore'],
+       function(PromenadeObject, View, _) {
 
   var Region = PromenadeObject.extend({
 
@@ -7,64 +7,94 @@ define(['promenade/object', 'promenade/view'],
     initialize: function(options) {
       this.superview = options.superview;
       this.selector = options.selector;
-      this.subview = null;
+      this.subviews = [];
 
-      this.$container = this.superview.$(this.selector);
+      this._resetContainer();
 
-      this.listenTo(this.superview, 'before:render', this._detachSubview);
-      this.listenTo(this.superview, 'render', this._attachSubview);
+      this.listenTo(this.superview, 'before:render', this._detachSubviews);
+      this.listenTo(this.superview, 'render', this._attachSubviews);
+    },
+
+    _resetContainer: function() {
+      if (this.selector) {
+        this.$container = this.superview.$(this.selector);
+      } else {
+        this.$container = this.superview.$el;
+      }
     },
 
 
-    show: function(view) {
+    add: function(views) {
       var PromenadeView = require('promenade/view');
 
-      if (this.subview) {
-        if (this.subview instanceof PromenadeView) {
-          this.subview.detach();
-        } else {
-          this.subview.remove();
-        }
+      if (!_.isArray(views)) {
+        views = [views];
       }
 
-      this.subview = view;
-
-      if (this.subview) {
-        if (this.subview instanceof PromenadeView) {
-          this.subview.attachTo(this.$container);
+      _.each(views, function(view) {
+        if (view instanceof PromenadeView) {
+          view.attachTo(this.$container);
         } else {
           this.$container.append(view.el);
         }
-      }
+      }, this);
+
+      this.subviews = this.subviews.concat(views);
     },
 
-
-    renderSubview: function(recursive) {
+    remove: function(views) {
       var PromenadeView = require('promenade/view');
 
-      if (this.subview) {
-        if (recursive && this.subview instanceof PromenadeView) {
-          this.subview.deepRender();
+      if (!_.isArray(views)) {
+        views = [views];
+      }
+
+      _.each(views, function(view) {
+        if (view instanceof PromenadeView) {
+          view.detach();
         } else {
-          this.subview.render();
+          view.remove();
         }
-      }
+      }, this);
+
+      this.subviews = _.without(this.subviews, views);
+    },
+
+    show: function(views) {
+      var PromenadeView = require('promenade/view');
+
+      this.remove(this.subviews);
+
+      this.add(views);
     },
 
 
-    _detachSubview: function() {
-      if (this.subview) {
-        this.subview.$el.detach();
-      }
+    renderSubviews: function(recursive) {
+      var PromenadeView = require('promenade/view');
+
+      _.each(this.subviews, function(view) {
+        if (recursive && view instanceof PromenadeView) {
+          view.deepRender();
+        } else {
+          view.render();
+        }
+      }, this);
     },
 
 
-    _attachSubview: function() {
-      this.$container = this.superview.$(this.selector);
+    _detachSubviews: function() {
+      _.each(this.subviews, function(view) {
+        view.$el.detach();
+      });
+    },
 
-      if (this.subview) {
-        this.$container.append(this.subview.$el);
-      }
+
+    _attachSubviews: function() {
+      this._resetContainer();
+
+      _.each(this.subviews, function(view) {
+        this.$container.append(view.$el);
+      }, this);
     }
   });
 

@@ -9,7 +9,11 @@ define(['backbone', 'underscore'],
         return model;
       }
 
-      if (!(_.isString(id) || _.isNumber(id))) {
+      if (!_.isString(id) && !_.isNumber(id)) {
+        return;
+      }
+
+      if (!this.url || !this.model) {
         return;
       }
 

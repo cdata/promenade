@@ -59,20 +59,32 @@ define(['underscore', 'promenade/object'],
      * controller.
      * @param {Function} subdefine A function that contains definitions that
      * should be scoped to the provided fragment.
+     * @param {Array} generators A list of generators that convert route params
+     * to models where possible.
      * @private
      */
-    _handle: function(fragment, handler, subdefine) {
+    _handle: function(fragment, handler, subdefine, generators) {
       if (!subdefine && _.isFunction(handler)) {
         subdefine = handler;
         handler = null;
       }
 
       if (handler) {
-        this.routes[fragment] = handler;
+        this.routes[fragment] = _.bind(function() {
+          var args = Array.prototype.slice.call(arguments);
+          args = _.map(args, function(arg, index) {
+            if (typeof arg !== 'undefined' && generators[index]) {
+              return generators[index](arg);
+            }
+            return arg;
+          });
+
+          this[handler].apply(this, args);
+        }, this);
       }
 
       if (subdefine) {
-        subdefine.call(this._getDefinitionContext(fragment));
+        subdefine.call(this._getDefinitionContext(fragment, generators));
       }
     },
 
@@ -93,18 +105,33 @@ define(['underscore', 'promenade/object'],
      * fragment to use.
      * @private
      */
-    _createDefinitionContext: function(root) {
+    _createDefinitionContext: function(root, generators) {
+
+      generators = generators || [];
 
       return {
         handle: _.bind(function(_fragment, handler, subdefine) {
-          this._handle(root + _fragment, handler, subdefine);
+          this._handle(root + _fragment, handler, subdefine,
+                       generators.slice());
         }, this),
         resource: _.bind(function(_fragment, handler, subdefine) {
+          var _generators = generators.slice();
+          _generators.push(_.bind(function(id) {
+            var model = this.app[_fragment];
+
+            if (model instanceof Backbone.Model ||
+                model instanceof Backbone.Collection) {
+              return model.get(id);
+            }
+
+            return id;
+          }, this));
           this._handle(root + _fragment + '/:' + _.uniqueId(),
-                       handler, subdefine);
+                       handler, subdefine, _generators);
         }, this),
         any: _.bind(function(handler) {
-          this._handle(root + '*' + _.uniqueId(), handler);
+          this._handle(root + '*' + _.uniqueId(), handler, null,
+                       generators.slice());
         }, this)
       };
     },
@@ -116,8 +143,9 @@ define(['underscore', 'promenade/object'],
      * fragment to use.
      * @private
      */
-    _getDefinitionContext: function(fragment) {
-      return this._createDefinitionContext(this._canonicalizeRoot(fragment));
+    _getDefinitionContext: function(fragment, generators) {
+      return this._createDefinitionContext(this._canonicalizeRoot(fragment),
+                                           generators);
     }
   });
 

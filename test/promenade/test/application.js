@@ -71,6 +71,7 @@ define(['promenade', 'promenade/application'],
           expect(app.baz).to.be.ok();
           expect(app.baz).to.be.a(BazModel);
         });
+
         describe('syncing data', function() {
 
           var server;
@@ -93,6 +94,7 @@ define(['promenade', 'promenade/application'],
 
             expect(app.baz.get('some')).to.be.eql('thing');
           });
+
           describe('when the data is empty', function() {
             beforeEach(function() {
               sinon.spy(app.vim, 'set');
@@ -101,12 +103,14 @@ define(['promenade', 'promenade/application'],
             afterEach(function() {
               app.vim.set.restore();
             });
+
             it('does not call set', function() {
               app.baz.fetch();
               server.respond();
               expect(app.vim.set.called).to.be.eql(false);
             });
           });
+
           describe('given data in a different namespace', function() {
             it('sets the data on the related model', function() {
               app.baz.fetch();

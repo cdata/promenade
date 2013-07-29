@@ -34,6 +34,111 @@ define(['promenade', 'promenade/model'],
       expect(Model).to.be.ok();
     });
 
+
+    describe('when there is an associated Application instance', function() {
+
+      var MyApp;
+      var MyNamespacedCollection;
+      var app;
+
+      beforeEach(function() {
+        MyNamespacedCollection = Promenade.Collection.extend({
+          namespace: 'foos'
+        });
+
+        MyApp = Promenade.Application.extend({
+          models: [
+            MyNamespacedCollection,
+            MyNamespacedModel
+          ]
+        });
+
+        app = new MyApp();
+
+        app.foos.add([{ id: 1, val: 'a' }, { id: 2, val: 'b' }]);
+      });
+
+      describe('and there are embedded references in that data', function() {
+        beforeEach(function() {
+          app.bar.set({
+            foo: {
+              id: 1,
+              type: 'foo'
+            },
+            foos: [{
+              id: 1,
+              type: 'foo'
+            }, {
+              id: 2,
+              type: 'foo'
+            }],
+            vim: {
+              id: 1,
+              type: 'vim'
+            }
+          });
+        });
+
+        it('serializes JSON with embedded references serialized as well', function() {
+          var data = app.bar.toJSON();
+
+          expect(data).to.be.eql({
+            foo: {
+              id: 1,
+              val: 'a'
+            },
+            foos: [{
+              id: 1,
+              val: 'a'
+            }, {
+              id: 2,
+              val: 'b'
+            }],
+            vim: {
+              id: 1,
+              type: 'vim'
+            }
+          });
+        });
+
+        describe('which refer to a single model', function() {
+          it('retrieves a canonical model instance upon get', function() {
+            var valueFromModel = app.bar.get('foo');
+            var valueFromCollection = app.foos.get(1);
+
+            expect(valueFromModel).to.be.ok();
+            expect(valueFromCollection).to.be.ok();
+            expect(valueFromModel).to.be(valueFromCollection);
+          });
+        });
+
+        describe('which refer to a set of models', function() {
+          it('retreives a set of canonical model instances upon get', function() {
+            var valuesFromModel = app.bar.get('foos');
+            var valuesFromCollection = app.foos.get([1, 2]);
+
+            expect(valuesFromModel).to.be.an(Array);
+            expect(valuesFromModel.length).to.be(2);
+
+            for (var i = 0; i < valuesFromModel.length; ++i) {
+              expect(valuesFromModel[i]).to.be(valuesFromCollection[i]);
+            }
+          });
+        });
+
+        describe('which refer to an unregistered type', function() {
+          it('returns the server-sent data representation', function() {
+            var valueFromModel = app.bar.get('vim');
+            expect(valueFromModel).to.be.eql({
+              id: 1,
+              type: 'vim'
+            });
+          });
+        });
+      });
+    });
+
+
     describe('when a namespace is declared', function() {
       var myModel;
       var data;
@@ -45,6 +150,23 @@ define(['promenade', 'promenade/model'],
             foo: 1
           }
         };
+      });
+
+      describe('and it is associated with an app', function() {
+        var MyApp;
+        var app;
+
+        beforeEach(function() {
+          MyApp = Promenade.Application.extend({
+            models: [ MyNamespacedModel ]
+          });
+          app = new MyApp();
+        });
+
+        it('has an app reference as a class property', function() {
+          expect(app.bar.app).to.be.ok();
+          expect(app.bar.app).to.be(app);
+        });
       });
 
       describe('when we receive data', function() {

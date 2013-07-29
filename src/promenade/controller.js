@@ -1,5 +1,5 @@
-define(['underscore', 'promenade/object'],
-       function(_, PromenadeObject) {
+define(['backbone', 'underscore', 'promenade/object'],
+       function(Backbone, _, PromenadeObject) {
   'use strict';
 
 
@@ -22,7 +22,47 @@ define(['underscore', 'promenade/object'],
       this.app = app;
       this.routes = {};
       this.defineRoutes.call(this._getDefinitionContext());
+
+      this._routeMatchers = _.map(this.routes, function(handler, route) {
+        return this.app._routeToRegExp(route);
+      }, this);
+
+      this._state = Controller.state.INACTIVE;
+
+      this.listenTo(this.app, 'route', this._onNavigationEvent);
     },
+
+    activate: function() {},
+
+    deactivate: function() {},
+
+    _activate: function() {
+      if (this._state === Controller.state.INACTIVE) {
+        this._state = Controller.state.ACTIVE;
+        this.activate();
+        this.trigger('activate');
+      }
+    },
+
+    _deactivate: function() {
+      if (this._state === Controller.state.ACTIVE) {
+        this._state = Controller.state.INACTIVE;
+        this.deactivate();
+        this.trigger('deactivate');
+      }
+    },
+
+    _onNavigationEvent: function(route) {
+      for (var index = 0; index < this._routeMatchers.length; ++index) {
+        if (this._routeMatchers[index].test(route)) {
+          this._activate();
+          return;
+        }
+      }
+
+      this._deactivate();
+    },
+
 
 
     /**
@@ -126,7 +166,7 @@ define(['underscore', 'promenade/object'],
 
             return id;
           }, this));
-          this._handle(root + _fragment + '/:' + _.uniqueId(),
+          this._handle(root + _fragment + '/:' + _fragment,
                        handler, subdefine, _generators);
         }, this),
         any: _.bind(function(handler) {
@@ -146,6 +186,11 @@ define(['underscore', 'promenade/object'],
     _getDefinitionContext: function(fragment, generators) {
       return this._createDefinitionContext(this._canonicalizeRoot(fragment),
                                            generators);
+    }
+  }, {
+    state: {
+      ACTIVE: 'active',
+      INACTIVE: 'inactive'
     }
   });
 

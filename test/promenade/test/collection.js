@@ -16,6 +16,29 @@ define(['backbone', 'promenade', 'promenade/collection'],
         });
       });
 
+      describe('and it is associated with an app', function() {
+        var MyApp;
+        var app;
+
+        beforeEach(function() {
+          MyApp = Promenade.Application.extend({
+            models: [ MyCollection ]
+          });
+          app = new MyApp();
+        });
+
+        it('has an app reference as a class property', function() {
+          expect(app.foo.app).to.be.ok();
+          expect(app.foo.app).to.be(app);
+        });
+
+        it('creates new models with an app property', function() {
+          app.foo.add({ id: 1 });
+          expect(app.foo.get(1).app).to.be.ok();
+          expect(app.foo.get(1).app).to.be(app);
+        });
+      });
+
       describe('when we receive data', function() {
         var collection;
         var data;
@@ -73,6 +96,33 @@ define(['backbone', 'promenade', 'promenade/collection'],
           model: Backbone.Model
         });
         collection = new MyCollection();
+      });
+
+      describe('by a list of lookup values', function() {
+        var doesNotExist;
+
+        beforeEach(function() {
+          collection.add({ id: 0 }, { id: 1 }, { id: 2 });
+          doesNotExist = { id: 4 };
+        });
+
+        it('returns the set of models in an array', function() {
+          var models = collection.get([0, 1, collection.get(2)]);
+
+          expect(models[0]).to.be.ok();
+          expect(models[0]).to.be(collection.get(0));
+          expect(models[1]).to.be.ok();
+          expect(models[1]).to.be(collection.get(1));
+          expect(models[2]).to.be.ok();
+          expect(models[2]).to.be(collection.get(2));
+        });
+
+        it('returns undefined for lookup value indices for which models are not found', 
+           function() {
+          var model = collection.get(doesNotExist);
+
+          expect(model).not.to.be.ok();
+        });
       });
 
       describe('that does not exist', function() {

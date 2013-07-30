@@ -1,3 +1,0 @@
-# CollectionView
-
-TBD

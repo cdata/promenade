@@ -6,6 +6,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-mocha-phantom-hack');
+  grunt.loadNpmTasks('grunt-docco2');
 
   grunt.initConfig({
     watch: {
@@ -18,7 +19,7 @@ module.exports = function(grunt) {
       test: {
         files: [
           'lib/*.js',
-          'test/promenade/**/*.js'
+          'test/' + project + '/**/*.js'
         ],
         tasks: ['test']
       }
@@ -58,13 +59,16 @@ module.exports = function(grunt) {
           include: ['support/almond', 'support/shim'],
           wrap: {
             start: '(function(global) {',
-            end: 'global.Promenade = require(\'promenade\');\n})(this);'
+            end: 'global.Promenade = require(\'' + project + '\');\n})(this);'
           }
         }
       }
     },
+    docco: {
+      docs: ['lib/' + project + '.js']
+    },
     jshint: {
-      all: ['src/**/*.js', '!src/support/*.js', 'test/promenade/**/*.js']
+      all: ['src/**/*.js', '!src/support/*.js', 'test/' + project + '/**/*.js']
     },
     mocha: {
       all: ['test/index.html']
@@ -72,5 +76,5 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('test', ['mocha', 'jshint']);
-  grunt.registerTask('build', ['requirejs']);
+  grunt.registerTask('build', ['requirejs', 'docco']);
 };

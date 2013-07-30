@@ -1,4 +1,7 @@
 node_modules
 bower_components
+lib/*
+docs/*
 *.swp
 .DS_Store
+!.gitkeep

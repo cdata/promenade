@@ -30,12 +30,14 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
       });
       MyModel = Promenade.Model.extend({
         namespace: 'foo',
+        type: 'foo',
         defaults: {
           bar: 'baz'
         }
       });
       MyCollection = Promenade.Collection.extend({
-        namespace: 'lur'
+        namespace: 'lur',
+        type: 'lur'
       });
       MyApplication = Application.extend({
         controllers: [
@@ -65,7 +67,7 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
       var myController;
 
       beforeEach(function() {
-        myController = new MyController(app);
+        myController = new MyController({ app: app });
       });
 
       it('defines a series of routes', function() {
@@ -83,7 +85,7 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           sinon.spy(app.controllers[0], 'receivesBar');
           sinon.spy(app.controllers[0], 'receivesModel');
           sinon.spy(app.controllers[0], 'receivesBarAndModel');
-          app.lur.reset([{
+          app.lurCollection.reset([{
             id: '1'
           }]);
         });
@@ -98,21 +100,24 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         describe('with an associated model', function() {
           it('passes the model-key value to the handler', function() {
             app.navigate('foo/bar', { trigger: true });
-            expect(app.controllers[0].receivesBar.getCall(0).calledWith('baz')).to.be(true);
+            expect(app.controllers[0].receivesBar.getCall(0).calledWith('baz'))
+                .to.be(true);
           });
         });
 
         describe('with an associated collection', function() {
           it('passes a model with the given id to the handler', function() {
             app.navigate('lur/1', { trigger: true });
-            expect(app.controllers[0].receivesModel.getCall(0).calledWith(app.lur.get('1'))).to.be(true);
+            expect(app.controllers[0].receivesModel.getCall(0).calledWith(
+                app.lurCollection.get('1'))).to.be(true);
           });
         });
 
         describe('with compound associations', function() {
           it('passes a model-key value and a model', function() {
             app.navigate('foo/bar/lur/1', { trigger: true });
-            expect(app.controllers[0].receivesBarAndModel.getCall(0).calledWith('baz', app.lur.get('1'))).to.be(true);
+            expect(app.controllers[0].receivesBarAndModel.getCall(0).calledWith(
+                'baz', app.lurCollection.get('1'))).to.be(true);
           });
         });
       });

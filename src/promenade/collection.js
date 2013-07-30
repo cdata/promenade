@@ -8,19 +8,32 @@ define(['backbone', 'underscore', 'promenade/model'],
   // some added functionality and pre-defined default behavior.
   var Collection = Backbone.Collection.extend({
 
-    // An optional ``namespace`` can be declared. By default it is an empty
-    // string and ignored as a falsey value. When defined, the ``namespace``
-    // has two important purposes. First, when a collection parses server data,
-    // the ``namespace`` of a ``Collection`` will be used to discover the data
-    // in the server response that corresponds to the ``Collection`` parsing it.
-    // Second, when defined for a ``Collection`` that is associated with an
-    // ``Application``, the ``namespace`` is used as the property name that the
-    // ``Collection`` instance is assigned to on the ``Application`` instance.
-    namespace: '',
+    
 
     // The default model class for a Promenade ``Collection`` is the Promenade
     // ``Model``.
     model: Model,
+
+    // When defined for a ``Collection`` that is associated with an
+    // ``Application``, the ``type`` is used as part of the property name that
+    // the ``Collection`` instance is assigned to on the ``Application``
+    // instance. E.g., a ``Collection`` with ``type`` that resolves to ``'foo'``
+    // will be assigned to the ``'fooCollection'`` property on the
+    // ``Application``. By default, a ``Collection`` defers to its designated
+    // ``Model`` to resolve the value of ``type``.
+    type: function() {
+      return this.model.prototype.type || '';
+    },
+
+    // An optional ``namespace`` can be declared. By default it is an empty
+    // string and ignored as a falsey value. When a collection parses server
+    // data, the ``namespace`` of a ``Collection`` will be used to discover the
+    // data in the server response that corresponds to the ``Collection``
+    // parsing it. By default, a ``Collection`` defers to its designated
+    // ``Model`` to resolve the value of ``namespace``.
+    namespace: function() {
+      return this.model.prototype.namespace || '';
+    },
 
     initialize: function(models, options) {
       Backbone.Collection.prototype.initialize.apply(this, arguments);
@@ -84,18 +97,7 @@ define(['backbone', 'underscore', 'promenade/model'],
     // expected to nest the intended data for a client ``Collection`` in
     // a property that matches the defined ``namespace``.
     parse: function(data) {
-      if (this.namespace) {
-        if (!(this.namespace in data)) {
-          // When expected data isn't available in the defined namespace, the
-          // ``parse`` method will throw.
-          throw new Error('Response data namespaced to "' +
-                          this.namespace + '" does not exist.');
-        }
-
-        data = data[this.namespace];
-      }
-
-      return data;
+      return Model.prototype.parse.apply(this, arguments);
     },
 
     // The internal ``_prepareModel`` method in the ``Collection`` is extended

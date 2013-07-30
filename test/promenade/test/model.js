@@ -14,13 +14,14 @@ define(['promenade', 'promenade/model'],
 
       MyModel = Model.extend({
         url: '/api/foo',
-        types: {
+        structure: {
           'foo': Model
         }
       });
 
       MyNamespacedModel = Model.extend({
         url: '/api/bar',
+        type: 'bar',
         namespace: 'bar'
       });
     });
@@ -43,7 +44,8 @@ define(['promenade', 'promenade/model'],
 
       beforeEach(function() {
         MyNamespacedCollection = Promenade.Collection.extend({
-          namespace: 'foos'
+          namespace: 'foos',
+          type: 'foo'
         });
 
         MyApp = Promenade.Application.extend({
@@ -55,12 +57,20 @@ define(['promenade', 'promenade/model'],
 
         app = new MyApp();
 
-        app.foos.add([{ id: 1, val: 'a' }, { id: 2, val: 'b' }]);
+        app.fooCollection.add([{ id: 1, val: 'a' }, { id: 2, val: 'b' }]);
       });
 
-      describe('and there are embedded references in that data', function() {
+      describe('and a type is declared', function() {
+        it('has an app reference as a class property', function() {
+          expect(app.barModel.app).to.be.ok();
+          expect(app.barModel.app).to.be(app);
+        });
+      });
+
+
+      describe('and there are embedded references in the data', function() {
         beforeEach(function() {
-          app.bar.set({
+          app.barModel.set({
             foo: {
               id: 1,
               type: 'foo'
@@ -80,7 +90,7 @@ define(['promenade', 'promenade/model'],
         });
 
         it('serializes JSON with embedded references serialized as well', function() {
-          var data = app.bar.toJSON();
+          var data = app.barModel.toJSON();
 
           expect(data).to.be.eql({
             foo: {
@@ -103,8 +113,8 @@ define(['promenade', 'promenade/model'],
 
         describe('which refer to a single model', function() {
           it('retrieves a canonical model instance upon get', function() {
-            var valueFromModel = app.bar.get('foo');
-            var valueFromCollection = app.foos.get(1);
+            var valueFromModel = app.barModel.get('foo');
+            var valueFromCollection = app.fooCollection.get(1);
 
             expect(valueFromModel).to.be.ok();
             expect(valueFromCollection).to.be.ok();
@@ -114,8 +124,8 @@ define(['promenade', 'promenade/model'],
 
         describe('which refer to a set of models', function() {
           it('retreives a set of canonical model instances upon get', function() {
-            var valuesFromModel = app.bar.get('foos');
-            var valuesFromCollection = app.foos.get([1, 2]);
+            var valuesFromModel = app.barModel.get('foos');
+            var valuesFromCollection = app.fooCollection.get([1, 2]);
 
             expect(valuesFromModel).to.be.an(Array);
             expect(valuesFromModel.length).to.be(2);
@@ -128,7 +138,7 @@ define(['promenade', 'promenade/model'],
 
         describe('which refer to an unregistered type', function() {
           it('returns the server-sent data representation', function() {
-            var valueFromModel = app.bar.get('vim');
+            var valueFromModel = app.barModel.get('vim');
             expect(valueFromModel).to.be.eql({
               id: 1,
               type: 'vim'
@@ -152,23 +162,6 @@ define(['promenade', 'promenade/model'],
         };
       });
 
-      describe('and it is associated with an app', function() {
-        var MyApp;
-        var app;
-
-        beforeEach(function() {
-          MyApp = Promenade.Application.extend({
-            models: [ MyNamespacedModel ]
-          });
-          app = new MyApp();
-        });
-
-        it('has an app reference as a class property', function() {
-          expect(app.bar.app).to.be.ok();
-          expect(app.bar.app).to.be(app);
-        });
-      });
-
       describe('when we receive data', function() {
         it('extracts only namespaced data when parsing', function() {
           var parsed = myModel.parse(data);
@@ -188,6 +181,7 @@ define(['promenade', 'promenade/model'],
         });
       });
     });
+    
 
     describe('with no namespace declared', function() {
       var myModel;
@@ -203,7 +197,7 @@ define(['promenade', 'promenade/model'],
       });
     });
 
-    describe('when types are declared', function() {
+    describe('when a structure is declared', function() {
 
       describe('and data is parsed', function() {
 

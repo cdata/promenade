@@ -1,5 +1,6 @@
 define(['backbone', 'promenade', 'promenade/collection'],
        function(Backbone, Promenade, Collection) {
+
   describe('Promenade.Collection', function() {
 
     it('is defined', function() {
@@ -7,62 +8,68 @@ define(['backbone', 'promenade', 'promenade/collection'],
       expect(Collection).to.be.ok();
     });
 
-    describe('when a namespace is declared', function() {
+    describe('when it is associated with an app', function() {
+      var MyApp;
       var MyCollection;
+      var app;
 
       beforeEach(function() {
         MyCollection = Promenade.Collection.extend({
-          namespace: 'foo'
+          namespace: 'foo',
+          type: 'foo'
         });
+        MyApp = Promenade.Application.extend({
+          models: [ MyCollection ]
+        });
+        app = new MyApp();
       });
 
-      describe('and it is associated with an app', function() {
-        var MyApp;
-        var app;
+      describe('and a type is declared', function() {
 
-        beforeEach(function() {
-          MyApp = Promenade.Application.extend({
-            models: [ MyCollection ]
-          });
-          app = new MyApp();
+        it('can be found on the app', function() {
+          expect(app.fooCollection).to.be.a(MyCollection);
+          expect(app.getResource('foo')).to.be.a(MyCollection);
         });
 
         it('has an app reference as a class property', function() {
-          expect(app.foo.app).to.be.ok();
-          expect(app.foo.app).to.be(app);
+          expect(app.fooCollection.app).to.be.ok();
+          expect(app.fooCollection.app).to.be(app);
         });
 
         it('creates new models with an app property', function() {
-          app.foo.add({ id: 1 });
-          expect(app.foo.get(1).app).to.be.ok();
-          expect(app.foo.get(1).app).to.be(app);
+          app.fooCollection.add({ id: 1 });
+          expect(app.fooCollection.get(1).app).to.be.ok();
+          expect(app.fooCollection.get(1).app).to.be(app);
         });
       });
 
-      describe('when we receive data', function() {
-        var collection;
-        var data;
+      describe('and a namespace is declared', function() {
 
-        beforeEach(function() {
-          collection = new MyCollection();
-          data = {
-            foo: {},
-            bar: {}
-          };
-        });
+        describe('when we receive data', function() {
+          var collection;
+          var data;
 
-        it('extracts namespaced data when parsing', function() {
-          expect(collection.parse(data)).to.be.eql(data.foo);
-        });
-
-        describe('and the expected namespace is absent in the data', function() {
-          it('throws hard', function() {
-            var badData = {
+          beforeEach(function() {
+            collection = new MyCollection();
+            data = {
+              foo: {},
               bar: {}
             };
-            expect(function() {
-              collection.parse(badData);
-            }).to.throwException();
+          });
+
+          it('extracts namespaced data when parsing', function() {
+            expect(collection.parse(data)).to.be.eql(data.foo);
+          });
+
+          describe('and the expected namespace is absent in the data', function() {
+            it('throws hard', function() {
+              var badData = {
+                bar: {}
+              };
+              expect(function() {
+                collection.parse(badData);
+              }).to.throwException();
+            });
           });
         });
       });

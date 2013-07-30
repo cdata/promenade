@@ -8,20 +8,27 @@ define(['backbone', 'require'],
   // properties that formalize how nested data structures are composed.
   var Model = Backbone.Model.extend({
 
-    // An optional ``namespace`` can be declared. By default it is an empty
-    // string and ignored as a falsey value. When defined, the ``namespace``
-    // has two important purposes. First, when a ``Model`` parses server data,
-    // the ``namespace`` of the ``Model`` will be used to discover the data
-    // in the server response that corresponds to the ``Model`` parsing it.
-    // Second, when defined for a ``Model`` that is associated with an
-    // ``Application``, the ``namespace`` is used as the property name that the
-    // ``Model`` instance is assigned to on the ``Application`` instance.
-    namespace: '',
+    // If a ``structure`` property is declared, it should be a mapping of
+    // ``type`` attribute names to class references, or to ``String`` values
+    // that can be used to resolve a class reference via an AMD API.
+    structure: {},
 
-    // If a ``types`` property is declared, it should be a mapping of ``type``
-    // attribute names to class references, or to ``String`` values that can be
-    // used to resolve a class reference via an AMD API.
-    types: {},
+    // When defined for a ``Model`` that is associated with an
+    // ``Application``, the ``type`` is used as part of the property name that
+    // the ``Model`` instance is assigned to on the ``Application``
+    // instance. E.g., a ``Model`` with ``type`` that resolves to ``'foo'``
+    // will be assigned to the ``'fooModel'`` property on the
+    // ``Application``.
+    type: function() {
+      return this.get('type') || '';
+    },
+
+    // An optional ``namespace`` can be declared. By default it is an empty
+    // string and ignored as a falsey value. When a collection parses server
+    // data, the ``namespace`` of a ``Model`` will be used to discover the
+    // data in the server response that corresponds to the ``Model``
+    // parsing it.
+    namespace: '',
 
     initialize: function(attrs, options) {
       Backbone.Model.prototype.initialize.apply(this, arguments);
@@ -38,14 +45,15 @@ define(['backbone', 'require'],
     // expected to nest the intended data for a client ``Model`` in
     // a property that matches the defined ``namespace``.
     parse: function(data) {
+      var namespace = _.result(this, 'namespace');
 
-      if (this.namespace) {
-        if (!(this.namespace in data)) {
+      if (namespace) {
+        if (!(namespace in data)) {
           throw new Error('Response data namespaced to "' +
-                          this.namespace + '" does not exist.');
+                          namespace + '" does not exist.');
         }
 
-        data = data[this.namespace];
+        data = data[namespace];
       }
 
       return data;
@@ -73,11 +81,11 @@ define(['backbone', 'require'],
       for (attr in attrs) {
         value = attrs[attr];
 
-        // If an attribute is in our ``types`` map, it means we should ensure
-        // that the ultimate attribute value is an instance of the class
+        // If an attribute is in our ``structure`` map, it means we should
+        // ensure that the ultimate attribute value is an instance of the class
         // associated with the declared type.
-        if (attr in this.types) {
-          Type = this.types[attr];
+        if (attr in this.structure) {
+          Type = this.structure[attr];
 
           // If the type value is a ``String``, then we resolve the class using
           // an AMD API.
@@ -188,9 +196,14 @@ define(['backbone', 'require'],
       // no ``Collection`` is found, the bridge simply returns the original
       // value of the embedded reference as provided in the server data.
       return function() {
-        if (app && (namespace in app) &&
-            app[namespace] instanceof Backbone.Collection) {
-          return app[namespace].get(value);
+        var collection;
+
+        if (app) {
+          collection = app.getCollectionForType(value.type);
+
+          if (collection && collection instanceof Backbone.Collection) {
+            return collection.get(value);
+          }
         }
 
         return value;

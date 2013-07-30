@@ -21,15 +21,18 @@ define(['promenade', 'promenade/application'],
       });
       BazModel = Promenade.Model.extend({
         url: '/api/baz',
-        namespace: 'baz'
+        namespace: 'baz',
+        type: 'baz'
       });
       VimModel = Promenade.Model.extend({
         url: '/api/vim',
-        namespace: 'vim'
+        namespace: 'vim',
+        type: 'vim'
       });
       LurModel = Promenade.Model.extend({
         url: '/api/lur',
-        namespace: 'lur'
+        namespace: 'lur',
+        type: 'lur'
       });
       MyApplication = Application.extend({
         controllers: [
@@ -68,8 +71,8 @@ define(['promenade', 'promenade/application'],
 
       describe('given a namespace registered with the application', function() {
         it('creates a model instance for the namespace', function() {
-          expect(app.baz).to.be.ok();
-          expect(app.baz).to.be.a(BazModel);
+          expect(app.bazModel).to.be.ok();
+          expect(app.bazModel).to.be.a(BazModel);
         });
 
         describe('syncing data', function() {
@@ -89,33 +92,33 @@ define(['promenade', 'promenade/application'],
           });
 
           it('sets the data on the model', function() {
-            app.baz.fetch();
+            app.bazModel.fetch();
             server.respond();
 
-            expect(app.baz.get('some')).to.be.eql('thing');
+            expect(app.bazModel.get('some')).to.be.eql('thing');
           });
 
           describe('when the data is empty', function() {
             beforeEach(function() {
-              sinon.spy(app.vim, 'set');
+              sinon.spy(app.vimModel, 'set');
             });
 
             afterEach(function() {
-              app.vim.set.restore();
+              app.vimModel.set.restore();
             });
 
             it('does not call set', function() {
-              app.baz.fetch();
+              app.bazModel.fetch();
               server.respond();
-              expect(app.vim.set.called).to.be.eql(false);
+              expect(app.vimModel.set.called).to.be.eql(false);
             });
           });
 
           describe('given data in a different namespace', function() {
             it('sets the data on the related model', function() {
-              app.baz.fetch();
+              app.bazModel.fetch();
               server.respond();
-              expect(app.lur.get('foo')).to.be.eql('bar');
+              expect(app.lurModel.get('foo')).to.be.eql('bar');
             });
           });
         });

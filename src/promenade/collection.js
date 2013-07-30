@@ -1,27 +1,25 @@
 define(['backbone', 'underscore', 'promenade/model'],
        function(Backbone, _, Model) {
   'use strict';
-  /* # Promenade.Collection # */
+  // Promenade.Collection
+  // --------------------
 
-  /* A ``Promenade.Collection`` is the same as a ``Backbone.Collection``, with
-   * some added functionality and pre-defined default behavior.
-   */
+  // A ``Promenade.Collection`` is the same as a ``Backbone.Collection``, with
+  // some added functionality and pre-defined default behavior.
   var Collection = Backbone.Collection.extend({
 
-    /* An optional ``namespace`` can be declared. By default it is an empty
-     * string and ignored as a falsey value. When defined, the ``namespace``
-     * has two important purposes. First, when a collection parses server data,
-     * the ``namespace`` of a ``Collection`` will be used to discover the data
-     * in the server response that corresponds to the ``Collection`` parsing it.
-     * Second, when defined for a ``Collection`` that is associated with an
-     * ``Application``, the ``namespace`` is used as the property name that the
-     * ``Collection`` instance is assigned to on the ``Application`` instance.
-     */
+    // An optional ``namespace`` can be declared. By default it is an empty
+    // string and ignored as a falsey value. When defined, the ``namespace``
+    // has two important purposes. First, when a collection parses server data,
+    // the ``namespace`` of a ``Collection`` will be used to discover the data
+    // in the server response that corresponds to the ``Collection`` parsing it.
+    // Second, when defined for a ``Collection`` that is associated with an
+    // ``Application``, the ``namespace`` is used as the property name that the
+    // ``Collection`` instance is assigned to on the ``Application`` instance.
     namespace: '',
 
-    /* The default model class for a Promenade ``Collection`` is the Promenade
-     * ``Model``.
-     */
+    // The default model class for a Promenade ``Collection`` is the Promenade
+    // ``Model``.
     model: Model,
 
     initialize: function(models, options) {
@@ -34,11 +32,10 @@ define(['backbone', 'underscore', 'promenade/model'],
       this.app = options && options.app;
     },
 
-    /* Promenade's ``Collection`` extends the default behavior of the ``get``
-     * method. When ``get`` is used to find a model by Number or String ``id``,
-     * and the model does not already exist in the collection, the model is
-     * created, added and fetched before being returned by the method.
-     */
+    // Promenade's ``Collection`` extends the default behavior of the ``get``
+    // method. When ``get`` is used to find a model by Number or String ``id``,
+    // and the model does not already exist in the collection, the model is
+    // created, added and fetched before being returned by the method.
     get: function(id) {
       var model;
 
@@ -82,11 +79,10 @@ define(['backbone', 'underscore', 'promenade/model'],
       return model;
     },
 
-    /* The default behavior of parse is extended to support the added
-     * ``namespace`` property. If a namespace is defined, server data is
-     * expected to nest the intended data for a client ``Collection`` in
-     * a property that matches the defined ``namespace``.
-     */
+    // The default behavior of parse is extended to support the added
+    // ``namespace`` property. If a namespace is defined, server data is
+    // expected to nest the intended data for a client ``Collection`` in
+    // a property that matches the defined ``namespace``.
     parse: function(data) {
       if (this.namespace) {
         if (!(this.namespace in data)) {
@@ -102,11 +98,10 @@ define(['backbone', 'underscore', 'promenade/model'],
       return data;
     },
 
-    /* The internal ``_prepareModel`` method in the ``Collection`` is extended
-     * to support propagation of any internal ``app`` references. This ensures
-     * that ``Model`` instances created by the ``Collection`` will contain
-     * matching references to a parent ``Application`` instance.
-     */
+    // The internal ``_prepareModel`` method in the ``Collection`` is extended
+    // to support propagation of any internal ``app`` references. This ensures
+    // that ``Model`` instances created by the ``Collection`` will contain
+    // matching references to a parent ``Application`` instance.
     _prepareModel: function(attrs, options) {
       // Provided options, if any, are defaulted to contain a reference to this
       // ``Collection`` instance's corresponding ``app``.

@@ -1,22 +1,42 @@
 define(['backbone', 'require'],
        function(Backbone, require) {
   'use strict';
+  // Promenade.Model
+  // ---------------
 
+  // A ``Promenade.Model`` is the same as a ``Backbone.Model``, with some added
+  // properties that formalize how nested data structures are composed.
   var Model = Backbone.Model.extend({
 
-
+    // An optional ``namespace`` can be declared. By default it is an empty
+    // string and ignored as a falsey value. When defined, the ``namespace``
+    // has two important purposes. First, when a ``Model`` parses server data,
+    // the ``namespace`` of the ``Model`` will be used to discover the data
+    // in the server response that corresponds to the ``Model`` parsing it.
+    // Second, when defined for a ``Model`` that is associated with an
+    // ``Application``, the ``namespace`` is used as the property name that the
+    // ``Model`` instance is assigned to on the ``Application`` instance.
     namespace: '',
 
-
+    // If a ``types`` property is declared, it should be a mapping of ``type``
+    // attribute names to class references, or to ``String`` values that can be
+    // used to resolve a class reference via an AMD API.
     types: {},
-
 
     initialize: function(attrs, options) {
       Backbone.Model.prototype.initialize.apply(this, arguments);
+
+      // On initialize, the ``Model`` creates a class property that refers to an
+      // app instance, if provided in the options. This behavior is used to
+      // support reference passing of a top-level ``Application`` down a deeply
+      // nested chain of ``Collection`` and ``Model`` instances.
       this.app = options && options.app;
     },
 
-
+    // The default behavior of parse is extended to support the added
+    // ``namespace`` property. If a namespace is defined, server data is
+    // expected to nest the intended data for a client ``Model`` in
+    // a property that matches the defined ``namespace``.
     parse: function(data) {
 
       if (this.namespace) {
@@ -31,12 +51,17 @@ define(['backbone', 'require'],
       return data;
     },
 
+    // The default ``set`` behavior has been significantly expanded to support
+    // new relationships between ``Model``, ``Collection`` and ``Application``
+    // instances.
     set: function(key, value, options) {
       var attrs;
       var attr;
       var Type;
       var current;
 
+      // We borrow the options parsing mechanism specific to the original
+      // Backbone implementation of this method.
       if (typeof key === 'object') {
         attrs = key;
         options = value;
@@ -44,16 +69,25 @@ define(['backbone', 'require'],
         (attrs = {})[key] = value;
       }
 
+      // Then we iterate over all attributes being set.
       for (attr in attrs) {
         value = attrs[attr];
 
+        // If an attribute is in our ``types`` map, it means we should ensure
+        // that the ultimate attribute value is an instance of the class
+        // associated with the declared type.
         if (attr in this.types) {
           Type = this.types[attr];
 
+          // If the type value is a ``String``, then we resolve the class using
+          // an AMD API.
           if (_.isString(Type)) {
             Type = require(Type);
           }
 
+          // When we have both a class and a value, and the value is not an
+          // instance of the declared type, then we either create a new instance
+          // of that type or update an existing instance in place.
           if (Type && value && !(value instanceof Type)) {
             current = this.get(attr);
 
@@ -64,19 +98,25 @@ define(['backbone', 'require'],
               attrs[attr] = new Type(value);
             }
           }
-        } else if (this.app && this._isEmbeddedReference(attr, value)) {
+        // Otherwise, if no matching type has been declared but the attribute
+        // and value as a pair represent an embedded reference to another model
+        // or set of models, then we create a brudge between the attribute and
+        // the non-local value being referred to.
+        } else if (this._isEmbeddedReference(attr, value)) {
 
           attrs[attr] = this._bridgeReference(attr, value);
         }
       }
 
+      // Once our attributes being set have been formatted appropriately,
+      // the attributes are sent through the normal Backbone ``set`` method.
       return Backbone.Model.prototype.set.call(this, attrs, options);
     },
 
-    /* The default ``get`` behavior has been expanded to automatically search
-     * an associated parent ``Application`` reference (if available) for a
-     * collection containing models of the type being looked up.
-     */
+    // The default ``get`` behavior has been expanded to automatically evaluate
+    // functions embedded within the attributes of a ``Model``. This allows the
+    // ``Model`` to return canonical instances of ``Models`` identified by
+    // embedded references as the result of a call to ``get``.
     get: function(attr) {
       var value = Backbone.Model.prototype.get.apply(this, arguments);
 
@@ -87,7 +127,17 @@ define(['backbone', 'require'],
       return value;
     },
 
+    // This method returns true if the ``key`` and ``value`` attributes together
+    // are determined to refer to an embedded reference.
     _isEmbeddedReference: function(key, value) {
+      // If no ``Application`` reference exists, there is no way to look up
+      // embedded references in the first place.
+      if (!this.app) {
+        return false;
+      }
+
+      // For values that are ``Array`` instances, observing the first index
+      // will suffice as a test.
       if (_.isArray(value)) {
         value = value[0];
       }
@@ -96,6 +146,8 @@ define(['backbone', 'require'],
         return false;
       }
 
+      // A value is considered an embedded reference if it contains an ``id``
+      // and a ``type`` attribute, with no other attributes present.
       for (var attr in value) {
         if (attr !== 'id' && attr !== 'type') {
           return false;
@@ -105,10 +157,16 @@ define(['backbone', 'require'],
       return 'id' in value && typeof value.type === 'string';
     },
 
+    // This method creates a bridge between an embedded reference and its
+    // referred-to value. A bridge takes the form of a function that can be
+    // called to look up the desired value.
     _bridgeReference: function(key, value) {
       var app = this.app;
       var namespace;
       
+      // If the value is an ``Array``, then the embedded reference represents a
+      // one-to-many relationship, and a bridge must be created for each of the
+      // embedded references in the ``Array``.
       if (_.isArray(value)) {
         value = _.map(value, function(_value) {
           return this._bridgeReference(key, _value);
@@ -121,8 +179,14 @@ define(['backbone', 'require'],
         };
       }
 
+      // The ``namespace`` to find the ultimate value is resolved by pluralizing
+      // the ``type`` embedded in the given value.
       namespace = this._pluralizeString(value.type);
 
+      // A bridge function works by looking for a ``Backbone.Collection`` on the
+      // root ``Application`` that corresponds to the resolved ``namespace``. If
+      // no ``Collection`` is found, the bridge simply returns the original
+      // value of the embedded reference as provided in the server data.
       return function() {
         if (app && (namespace in app) &&
             app[namespace] instanceof Backbone.Collection) {
@@ -133,6 +197,9 @@ define(['backbone', 'require'],
       };
     },
 
+    // The ``_pluralizeString`` method returns the plural version of a provided
+    // string, or the string itself if it is deemed to already be a pluralized
+    // string. Presently, the implementation of this method is not robust.
     _pluralizeString: function(string) {
       var suffix = 's';
       var offset = 0;
@@ -153,7 +220,13 @@ define(['backbone', 'require'],
       return string.substr(0, string.length - offset) + suffix;
     },
 
-
+    // JSON serialization has been expanded to accomodate for the new value
+    // types that the ``Model`` supports. When an attribute value is a
+    // ``Function``, the value is resolved by calling that ``Function``. If the
+    // result of a called ``Function`` value is an ``Array``, each item in the
+    // ``Array`` is also observed and called if it is a ``Function``. If any
+    // values resolved in the scope of the expanded method have their own
+    // ``toJSON`` method, those values are set to the result of that method.
     toJSON: function() {
       var data = Backbone.Model.prototype.toJSON.apply(this, arguments);
       var iterator = function(_value) {

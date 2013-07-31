@@ -99,11 +99,13 @@ define(['backbone', 'underscore', 'promenade/object'],
 
     // This method is an internal mechanism to generate ``route`` event handlers
     // which will later be consumed by the ``Application`` instance.
-    _handle: function(fragment, handler, subdefine, generators) {
-      if (!subdefine && _.isFunction(handler)) {
-        subdefine = handler;
-        handler = null;
-      }
+    //_handle: function(fragment, handler, options, subdefine, generators) {
+    _handle: function(state) {
+      var handler = state.handler;
+      var fragment = state.fragment;
+      var options = state.options;
+      var subdefine = state.subdefine;
+      var generators = state.generators;
 
       if (handler) {
         this.routes[fragment] = _.bind(function() {
@@ -140,19 +142,23 @@ define(['backbone', 'underscore', 'promenade/object'],
       return {
         // A ``handle`` definition refers to a fragment that can be handled, but
         // which is not expected to include a parameter.
-        handle: _.bind(function(_fragment, handler, subdefine) {
-          this._handle(root + _fragment, handler, subdefine,
-                       generators.slice());
-        }, this),
+        handle: this._createDefinitionStateParser(function(state) {
+          state.generators = generators.slice();
+          state.fragment = root + state.fragment;
+          this._handle(state);
+        }),
         // A ``resource`` definition refers to a fragment that should be
         // expected to include a subsequent parameter.
-        resource: _.bind(function(_fragment, handler, subdefine) {
+        resource: this._createDefinitionStateParser(function(state) {
           var _generators = generators.slice();
+          var fragment = state.fragment;
+          var options = state.options;
+          var type = options && options.type;
           // Resource generators are created when a ``resource`` definition
           // is made. During such a definition, the fragment can be expected to
           // refer to the ``type`` of the resource expected.
           _generators.push(_.bind(function(id) {
-            var model = this.app.getResource(_fragment);
+            var model = this.app.getResource(type || fragment);
 
             if (model instanceof Backbone.Model ||
                 model instanceof Backbone.Collection) {
@@ -161,18 +167,56 @@ define(['backbone', 'underscore', 'promenade/object'],
 
             return id;
           }, this));
-          this._handle(root + _fragment + '/:' + _fragment,
-                       handler, subdefine, _generators);
-        }, this),
+          state.generators = _generators;
+          state.fragment = root + fragment + '/:' + fragment;
+          this._handle(state);
+        }),
         // An ``any`` definition behaves like a splat, and thus cannot support
         // subsequent definitions.
-        any: _.bind(function(handler) {
-          this._handle(root + '*' + _.uniqueId(), handler, null,
-                       generators.slice());
-        }, this)
+        any: this._createDefinitionStateParser(function(state) {
+          state.generators = generators.slice();
+          state.handler = state.fragment;
+          state.fragment = root + '*any';
+          this._handle(state);
+        })
       };
     },
 
+    // The interface for defining a route hierarchy is a simple abstraction of
+    // non-trivial behavior. This method parses the arguments for each route
+    // definition and converts them to a state object for further processing.
+    _createDefinitionStateParser: function(fn) {
+      return _.bind(function(fragment, handler, options, subdefine) {
+        var state = {};
+        state.fragment = fragment;
+
+        if (_.isString(handler)) {
+          state.handler = handler;
+          if (_.isFunction(options)) {
+            state.subdefine = options;
+          } else {
+            state.options = options;
+            state.subdefine = subdefine;
+          }
+        }
+
+        if (_.isFunction(handler)) {
+          state.subdefine = handler;
+        } else if (_.isObject(handler)) {
+          state.options = handler;
+          if (_.isFunction(options)) {
+            state.subdefine = options;
+          }
+        }
+
+        fn.call(this, state);
+      }, this);
+    },
+
+    // If a fragment is an empty string, it should not have a slash. Backbone
+    // expects that fragments have no root path. In all other cases, a trailing
+    // slash must be added to the fragment for the sake of any subsequently
+    // appended parts.
     _canonicalizeRoot: function(fragment) {
       return fragment ? fragment + '/' : '';
     },

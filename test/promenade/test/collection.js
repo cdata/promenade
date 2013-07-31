@@ -75,6 +75,73 @@ define(['backbone', 'promenade', 'promenade/collection'],
       });
     });
 
+    describe('when a subset is requested', function() {
+      var superset;
+      var subset;
+
+      beforeEach(function() {
+        superset = new Collection();
+        for (var i = 0; i < 10; ++i) {
+          superset.add({ id: i });
+        }
+
+        subset = superset.subset(function(model) {
+          return window.parseInt(model.id, 10) > 4;
+        });
+      });
+
+      it('yields a Collection with existing items matching the filter', function() {
+        expect(subset).to.be.a(Collection);
+        expect(subset.length).to.be(5);
+      });
+
+      it('does not remove items from the superset by being created', function() {
+        expect(superset.length).to.be(10);
+      });
+
+      it('updates the subset when items are added to the superset', function() {
+        superset.add({ id: 11 });
+
+        expect(subset.length).to.be(6);
+        expect(superset.length).to.be(11);
+        expect(subset.get(11)).to.be(superset.get(11));
+      });
+
+      it('does not update the subset when items are added that do not match the filter', function() {
+        superset.add({ id: -1 });
+
+        expect(subset.length).to.be(5);
+        expect(superset.length).to.be(11);
+        expect(subset.get(-1)).to.not.be.ok();
+        expect(superset.get(-1)).to.be.ok();
+      });
+      
+      it('updates the subset when items are removed from the superset', function() {
+        superset.remove(5);
+
+        expect(superset.get(5)).to.not.be.ok();
+        expect(subset.get(5)).to.not.be.ok();
+        expect(subset.length).to.be(4);
+      });
+
+      it('updates the superset when items are added to the subset', function() {
+        subset.add({ id: 11 });
+
+        expect(superset.length).to.be(11);
+        expect(subset.length).to.be(6);
+        expect(superset.get(11)).to.be(subset.get(11));
+      });
+
+      it('updates the superset when items are removed from the subset', function() {
+        subset.remove(5);
+
+        expect(superset.get(5)).to.not.be.ok();
+        expect(superset.length).to.be(9);
+        expect(subset.get(5)).to.not.be.ok();
+        expect(subset.length).to.be(4);
+      });
+    });
+
     describe('with no namespace declared', function() {
       var MyCollection;
       var collection;

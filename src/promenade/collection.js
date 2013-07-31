@@ -22,7 +22,7 @@ define(['backbone', 'underscore', 'promenade/model'],
     // ``Application``. By default, a ``Collection`` defers to its designated
     // ``Model`` to resolve the value of ``type``.
     type: function() {
-      return this.model.prototype.type || '';
+      return _.result(this.model.prototype, 'type') || '';
     },
 
     // An optional ``namespace`` can be declared. By default it is an empty
@@ -32,17 +32,26 @@ define(['backbone', 'underscore', 'promenade/model'],
     // parsing it. By default, a ``Collection`` defers to its designated
     // ``Model`` to resolve the value of ``namespace``.
     namespace: function() {
-      return this.model.prototype.namespace || '';
+      return _.result(this.model.prototype, 'namespace') || '';
     },
 
     initialize: function(models, options) {
       Backbone.Collection.prototype.initialize.apply(this, arguments);
-
+      options = options || {};
       // On initialize, the ``Collection`` creates a class property that refers
       // to an app instance, if provided in the options. This behavior is used
       // to support reference passing of a top-level application down a deeply
       // nested chain of ``Collection`` and ``Model`` instances.
-      this.app = options && options.app;
+      this.app = options.app;
+
+      // A provided superset will also be assigned to the ``Collection``. This
+      // allows holders of a reference to a ``subset`` to refer to a
+      // ``superset`` when adding, removing and reseting models is required.
+      this.superset = options.superset;
+
+      if (_.isArray(options.seed)) {
+        this._seed(options.seed);
+      }
     },
 
     // Promenade's ``Collection`` extends the default behavior of the ``get``
@@ -100,22 +109,122 @@ define(['backbone', 'underscore', 'promenade/model'],
       return Model.prototype.parse.apply(this, arguments);
     },
 
+    // A subset ``Collection`` instance can be created that represents the set
+    // of ``models`` in the superset remaining when filtered by ``iterator``.
+    // All semantics of ``_.filter`` apply when filtering a subset. The returned
+    // ``Collection`` instance is an instance of ``Promenade.Collection`` by
+    // default.
+    subset: function(iterator, options) {
+      var subset;
+
+      options = _.defaults(options || {}, {
+        app: this.app,
+        superset: this,
+        seed: this.filter(iterator)
+      });
+
+      subset = new Collection(null, options);
+
+      if (subset.comparator) {
+        subset.sort({ silent: true });
+      }
+
+      // The ``'add'``, ``'remove'`` and ``'reset'`` events are listened to by
+      // the ``subset`` on the superset ``Collection`` instance so that changes
+      // to the superset are reflected automatically in the ``subset``.
+      // When a ``subset`` is no longer being used, ``stopListening`` should
+      // be called on it so that the automatically created listeners are cleaned
+      // up.
+      subset.listenTo(this, 'add', function(model) {
+        if (iterator(model)) {
+          console.log('added', model);
+          Backbone.Collection.prototype.add.call(subset, model);
+        }
+      });
+
+      subset.listenTo(this, 'remove', function(model) {
+        Backbone.Collection.prototype.remove.call(subset, model);
+      });
+
+      subset.listenTo(this, 'reset', function() {
+        Backbone.Collection.prototype.reset.call(subset, model);
+      });
+
+      return subset;
+    },
+
+    // This method is used when a ``Collection`` is being instantiated as a
+    // subset of another collection. It represents the most silent way possible
+    // to set an initial set of models on the ``Collection``.
+    _seed: function(models) {
+      var i;
+      var model;
+
+      this.models = models;
+      this.length = models.length;
+
+      for (i = 0; i < models.length; ++i) {
+        model = models[i];
+
+        model.on('all', this._onModelEvent, this);
+
+        this._byId[model.cid] = model;
+
+        if (model.id !== null && model.id !== undefined) {
+          this._byId[model.id] = model;
+        }
+      }
+    },
+
+
     // The internal ``_prepareModel`` method in the ``Collection`` is extended
     // to support propagation of any internal ``app`` references. This ensures
     // that ``Model`` instances created by the ``Collection`` will contain
     // matching references to a parent ``Application`` instance.
     _prepareModel: function(attrs, options) {
+      var namespace;
+      var namespaced;
+
       // Provided options, if any, are defaulted to contain a reference to this
       // ``Collection`` instance's corresponding ``app``.
       options = _.defaults(options || {}, {
         app: this.app
       });
 
+      namespace = _.result(this.model.prototype, 'namespace');
+
+      // When we are preparing a ``Model`` instance with a declared
+      // ``namespace``, the attributes must be nested in the ``namespace``
+      // before they are parsed.
+      if (options.parse && namespace) {
+        namespaced = {};
+        namespaced[namespace] = attrs;
+
+        attrs = namespaced;
+      }
+
       // With the option defaults set, the normal ``_prepareModel`` method is
       // used to finish creating the ``Model`` instance.
       return Backbone.Collection.prototype._prepareModel.call(this,
                                                               attrs, options);
     }
+  });
+
+  // When a ``superset`` is assigned to a ``Collection`` instance, any in-place
+  // manipulation of the ``Collection`` instance is redirected to the
+  // ``superset``. Changes will automatically reflect in the ``Collection`` as
+  // events propagate.
+  _.each(['add', 'remove', 'reset', 'push', 'pop', 'shift', 'unshift',
+          'create', 'fetch'], function(method) {
+    var originalMethod = Collection.prototype[method];
+
+    Collection.prototype[method] = function() {
+      if (this.superset) {
+        return this.superset[method].apply(this.superset, arguments);
+      }
+
+      return originalMethod.apply(this, arguments);
+    };
   });
 
   return Collection;

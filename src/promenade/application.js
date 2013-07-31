@@ -1,5 +1,5 @@
-define(['backbone', 'underscore', 'jquery'],
-       function(Backbone, _, $) {
+define(['backbone', 'underscore', 'jquery', 'require'],
+       function(Backbone, _, $, require) {
   'use strict';
   // Promenade.Application
   // --------------------
@@ -30,8 +30,12 @@ define(['backbone', 'underscore', 'jquery'],
     // that represent the data to be presented by the ``Application``.
     models: [],
 
+    view: null,
+
     initialize: function(options) {
       Backbone.Router.prototype.initialize.apply(this, arguments);
+      var view = this.view;
+      this.view = null;
 
       this._initializeModels();
 
@@ -39,6 +43,8 @@ define(['backbone', 'underscore', 'jquery'],
       // ``Application`` instance during initialization.
       this.$rootElement = $(this.root);
       this.rootElement = this.$rootElement.get(0);
+
+      this.useView(view);
     },
 
     // The ``getResource`` method can be called to lookup a backing datastore
@@ -61,11 +67,87 @@ define(['backbone', 'underscore', 'jquery'],
     // These methods exist for the purpose of more predictable canonicalization
     // of property names given a ``type``.
     getCollectionName: function(type) {
-      return type + 'Collection';
+      return this.camelize(type) + 'Collection';
     },
 
     getModelName: function(type) {
-      return type + 'Model';
+      return this.camelize(type) + 'Model';
+    },
+
+    // When assigning ``Collection`` and ``Model`` instances to the
+    // ``Application`` instance as properties, we must gracefully hadnle cases
+    // where a resolved ``type`` value is not camelized. This helper function
+    // converted strings separated with ``'_'`` characters into camel-cased
+    // strings.
+    camelize: function(string) {
+      var parts = string.split('_');
+      var part;
+      var i;
+
+      string = '';
+
+      for (i = 0; i < parts.length; ++i) {
+        part = parts[i].toLowerCase();
+
+        if (!part) {
+          continue;
+        }
+
+        if (i !== 0) {
+          part = part.substr(0, 1).toUpperCase() + part.substr(1, part.length - 1);
+        }
+
+        string += part;
+      }
+
+      return string;
+    },
+
+    // ``useView`` is an idempotent way to set the main layout of an
+    // ``Application`` instance. The method accepts a string, class reference
+    // or ``View`` instance.
+    useView: function(View) {
+      var view;
+
+      // When no argument is provided, the method returns immediately.
+      if (!View) {
+        return;
+      }
+
+      // When the argument is a ``String``, it is resolved as a module using
+      // an AMD API.
+      if (_.isString(View)) {
+        View = require(View);
+      }
+
+      // If we already have a ``view`` set on the ``Application`` instance, the
+      // view is compared to the parameter provided. If ``view`` is an instance
+      // of ``View``, or if ``view`` and ``View`` are the same, the method
+      // returns immediately.
+      if (this.view) {
+        if ((_.isFunction(View) && this.view instanceof View) ||
+            this.view === View) {
+          return;
+        }
+
+        // Otherwise the current ``view`` is removed.
+        this.view.remove();
+      }
+
+      // The new ``view`` is created either by instantiating a provided class,
+      // or by setting a provided instance.
+      if (_.isFunction(View)) {
+        view = new View();
+      } else {
+        view = View;
+      }
+
+      // Finally, the new ``view`` instance is rendered and appended to the
+      // ``rootElement`` of the ``Application`` instance.
+      view.render();
+      this.$rootElement.append(view.$el);
+
+      this.view = view;
     },
 
     // Upon initialization, and ``Application`` iterates through the list of

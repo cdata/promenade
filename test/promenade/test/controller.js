@@ -20,13 +20,17 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
             this.resource('lur', 'receivesBarAndModel');
           });
           this.resource('lur', 'receivesModel');
+          this.resource('lur', function() {
+            this.resource('bing', 'receivesModelAndModel', { type: 'lur' });
+          });
         },
         foo: function() {},
         bar: function() {},
         barBaz: function(baz) {},
         receivesBar: function(bar) {},
         receivesModel: function(model) {},
-        receivesBarAndModel: function(bar, model) {}
+        receivesBarAndModel: function(bar, model) {},
+        receivesModelAndModel: function(modelOne, modelTwo) {}
       });
       MyModel = Promenade.Model.extend({
         namespace: 'foo',
@@ -41,7 +45,13 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
       });
       MyApplication = Application.extend({
         controllers: [
-          MyController
+          MyController,
+          Controller.extend({
+            defineRoutes: function() {
+              this.handle('grog', 'onGrog');
+            },
+            onGrog: function() {}
+          })
         ],
         models: [
           MyModel,
@@ -75,7 +85,7 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         for (var routeString in myController.routes) {
           ++count;
         }
-        expect(count).to.be.eql(6);
+        expect(count).to.be.eql(7);
       });
     });
 
@@ -85,6 +95,9 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           sinon.spy(app.controllers[0], 'receivesBar');
           sinon.spy(app.controllers[0], 'receivesModel');
           sinon.spy(app.controllers[0], 'receivesBarAndModel');
+          sinon.spy(app.controllers[0], 'receivesModelAndModel');
+          sinon.spy(app.controllers[0], 'activate');
+          sinon.spy(app.controllers[0], 'deactivate');
           app.lurCollection.reset([{
             id: '1'
           }]);
@@ -94,7 +107,26 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           app.controllers[0].receivesBar.restore();
           app.controllers[0].receivesModel.restore();
           app.controllers[0].receivesBarAndModel.restore();
+          app.controllers[0].receivesModelAndModel.restore();
+          app.controllers[0].activate.restore();
+          app.controllers[0].deactivate.restore();
           app.navigate('');
+        });
+
+        it('calls its own activate method when the route first matches', function() {
+          expect(app.controllers[0].activate.callCount).to.be(0);
+          app.navigate('foo/bar', { trigger: true });  
+          expect(app.controllers[0].activate.callCount).to.be(1);
+          app.navigate('lur/1', { trigger: true });
+          expect(app.controllers[0].activate.callCount).to.be(1);
+        });
+
+        it('calls its own deactivate method when the route no longer matches', function() {
+          expect(app.controllers[0].deactivate.callCount).to.be(0);
+          app.navigate('foo/bar', { trigger: true });  
+          expect(app.controllers[0].deactivate.callCount).to.be(0);
+          app.navigate('grog', { trigger: true });
+          expect(app.controllers[0].deactivate.callCount).to.be(1);
         });
 
         describe('with an associated model', function() {
@@ -118,6 +150,17 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
             app.navigate('foo/bar/lur/1', { trigger: true });
             expect(app.controllers[0].receivesBarAndModel.getCall(0).calledWith(
                 'baz', app.lurCollection.get('1'))).to.be(true);
+          });
+        });
+
+        describe('when an optional type is specified', function() {
+          it('uses that type to resolve the resource instead of the fragment',
+             function() {
+            app.navigate('lur/1/bing/1', { trigger: true });
+            var model = app.lurCollection.get('1');
+            var call = app.controllers[0].receivesModelAndModel.getCall(0);
+
+            expect(call.calledWith(model, model)).to.be(true);
           });
         });
       });

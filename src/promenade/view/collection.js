@@ -1,6 +1,8 @@
 define(['promenade/view'],
        function(View) {
   'use strict';
+  // Promenade.CollectionView
+  // ------------------------
 
   var CollectionView = View.extend({
     itemView: View,
@@ -58,6 +60,11 @@ define(['promenade/view'],
     },
     resetItems: function() {
       this._removeAllItems();
+
+      if (!this.collection) {
+        return;
+      }
+
       this.collection.each(function(model) {
         this._addItemByModel(model);
       }, this);

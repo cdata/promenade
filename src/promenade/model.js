@@ -13,6 +13,24 @@ define(['backbone', 'require'],
     // that can be used to resolve a class reference via an AMD API.
     structure: {},
 
+    // If a ``structureEvents`` map is available, events will be bound and 
+    // unbound automatically based on the supplied definition. For example:
+    //   
+    //   // ...
+    //   structure: {
+    //     comments: Backbone.Collection
+    //   },
+    //   structureEvents: {
+    //     'add comments': 'onCommentAdded'
+    //   },
+    //   // ...
+    //
+    // This will automatically bind a handler to the ``'add'`` event of the
+    // ``comments`` sub-collection. When the sub-collection is removed or the
+    // reference is changed, the handler will be automatically updated or
+    // removed as appropriate.
+    structureEvents: {},
+
     // When defined for a ``Model`` that is associated with an
     // ``Application``, the ``type`` is used as part of the property name that
     // the ``Model`` instance is assigned to on the ``Application``
@@ -20,7 +38,10 @@ define(['backbone', 'require'],
     // will be assigned to the ``'fooModel'`` property on the
     // ``Application``.
     type: function() {
-      return this.get('type') || '';
+      var defaults = _.result(this, 'defaults');
+      var namespace = _.result(this, 'namespace');
+      return (this.attributes && this.get('type')) ||
+             (defaults && defaults.type) || namespace || '';
     },
 
     // An optional ``namespace`` can be declared. By default it is an empty
@@ -75,6 +96,14 @@ define(['backbone', 'require'],
         options = value;
       } else {
         (attrs = {})[key] = value;
+      }
+
+      // On ``set``, the ``Model`` creates a class property that refers to an
+      // app instance, if provided in the options. This behavior is used to
+      // support reference passing of a top-level ``Application`` down a deeply
+      // nested chain of ``Collection`` and ``Model`` instances.
+      if (options && options.app) {
+        this.app = options.app;
       }
 
       // Then we iterate over all attributes being set.
@@ -162,7 +191,7 @@ define(['backbone', 'require'],
         }
       }
 
-      return 'id' in value && typeof value.type === 'string';
+      return typeof value.id !== undefined && typeof value.type === 'string';
     },
 
     // This method creates a bridge between an embedded reference and its

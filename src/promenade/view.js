@@ -150,8 +150,6 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
     // By default, a ``View`` will re-render on most manipulation-implying
     // events dispatched by its ``model`` or ``collection``.
     modelEvents: {
-      'add': 'render',
-      'remove': 'render',
       'reset': 'render',
       'change': 'render'
     },
@@ -196,7 +194,6 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
     getRegion: function(region) {
       return this[this.getRegionProperty(region)];
     },
-
 
     getRegionProperty: function(region) {
       return region + 'Region';

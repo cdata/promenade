@@ -13,9 +13,9 @@ define(['backbone', 'require'],
     // that can be used to resolve a class reference via an AMD API.
     structure: {},
 
-    // If a ``structureEvents`` map is available, events will be bound and 
+    // If a ``structureEvents`` map is available, events will be bound and
     // unbound automatically based on the supplied definition. For example:
-    //   
+    //
     //   // ...
     //   structure: {
     //     comments: Backbone.Collection
@@ -80,6 +80,33 @@ define(['backbone', 'require'],
       return data;
     },
 
+    // Sync is overridden at the ``Model`` and ``Collection`` level in order to
+    // support a new ``'before:sync'`` event. This event is triggered on both
+    // a ``Model`` or ``Collection`` and their associated ``Application`` (if
+    // available. This event allows an ``Application`` to propagate extra
+    // response data before the normal ``'sync'`` event triggers, and prior to
+    // any network success callbacks being called.
+    sync: function(method, model, options) {
+      var success;
+
+      options = options || {};
+      success = options.success;
+
+      options.success = function(resp) {
+        if (model.app) {
+          model.app.trigger('before:sync', model, resp, options);
+        }
+
+        model.trigger('before:sync', model, resp, options);
+
+        if (success) {
+          success.apply(options, arguments);
+        }
+      };
+
+      return Backbone.sync.call(this, method, model, options);
+    },
+
     // The default ``set`` behavior has been significantly expanded to support
     // new relationships between ``Model``, ``Collection`` and ``Application``
     // instances.
@@ -110,6 +137,13 @@ define(['backbone', 'require'],
       for (attr in attrs) {
         value = attrs[attr];
 
+        // If the value is determined to be an embedded reference, we map the
+        // attr / value combination to value derived from a resource linked from
+        // the ``Application`` reference.
+        if (this._isEmbeddedReference(attr, value)) {
+          value = attrs[attr] = this._bridgeReference(attr, value);
+        }
+
         // If an attribute is in our ``structure`` map, it means we should
         // ensure that the ultimate attribute value is an instance of the class
         // associated with the declared type.
@@ -135,13 +169,6 @@ define(['backbone', 'require'],
               attrs[attr] = new Type(value);
             }
           }
-        // Otherwise, if no matching type has been declared but the attribute
-        // and value as a pair represent an embedded reference to another model
-        // or set of models, then we create a brudge between the attribute and
-        // the non-local value being referred to.
-        } else if (this._isEmbeddedReference(attr, value)) {
-
-          attrs[attr] = this._bridgeReference(attr, value);
         }
       }
 
@@ -199,49 +226,37 @@ define(['backbone', 'require'],
     // called to look up the desired value.
     _bridgeReference: function(key, value) {
       var app = this.app;
-      var namespace;
-      
+      var collection;
+      var model;
+
       // If the value is an ``Array``, then the embedded reference represents a
       // one-to-many relationship, and a bridge must be created for each of the
       // embedded references in the ``Array``.
       if (_.isArray(value)) {
-        value = _.map(value, function(_value) {
+        return _.map(value, function(_value) {
           return this._bridgeReference(key, _value);
         }, this);
-
-        return function() {
-          return _.map(value, function(_value) {
-            return _value();
-          }, this);
-        };
       }
 
-      // The ``namespace`` to find the ultimate value is resolved by pluralizing
-      // the ``type`` embedded in the given value.
-      namespace = this._pluralizeString(value.type);
+      // A bridge works by looking for a ``Backbone.Collection`` on the root
+      // ``Application`` that corresponds to the resolved ``namespace``. If no
+      // ``Collection`` is found, the bridge simply returns the original value
+      // of the embedded reference as provided in the server data.
+      if (app) {
+        collection = app.getCollectionForType(value.type);
 
-      // A bridge function works by looking for a ``Backbone.Collection`` on the
-      // root ``Application`` that corresponds to the resolved ``namespace``. If
-      // no ``Collection`` is found, the bridge simply returns the original
-      // value of the embedded reference as provided in the server data.
-      return function() {
-        var collection;
-
-        if (app) {
-          collection = app.getCollectionForType(value.type);
-
-          if (collection && collection instanceof Backbone.Collection) {
-            return collection.get(value);
-          }
+        if (collection && collection instanceof Backbone.Collection) {
+          return collection.get(value);
         }
+      }
 
-        return value;
-      };
+      return value;
     },
 
     // The ``_pluralizeString`` method returns the plural version of a provided
     // string, or the string itself if it is deemed to already be a pluralized
-    // string. Presently, the implementation of this method is not robust.
+    // string. Presently, the implementation of this method is not robust. It
+    // will not properly pluralize ``'cactus'``, for instance.
     _pluralizeString: function(string) {
       var suffix = 's';
       var offset = 0;
@@ -263,35 +278,35 @@ define(['backbone', 'require'],
     },
 
     // JSON serialization has been expanded to accomodate for the new value
-    // types that the ``Model`` supports. When an attribute value is a
-    // ``Function``, the value is resolved by calling that ``Function``. If the
-    // result of a called ``Function`` value is an ``Array``, each item in the
-    // ``Array`` is also observed and called if it is a ``Function``. If any
-    // values resolved in the scope of the expanded method have their own
-    // ``toJSON`` method, those values are set to the result of that method.
-    toJSON: function() {
+    // types that the ``Model`` supports. If any values resolved in the scope of
+    // the expanded method have their own ``toJSON`` method, those values are
+    // set to the result of that method. Additionally, a truthy value passed
+    // to ``toJSON`` will result in a shallow serialization where embedded
+    // references will not have their ``toJSON`` methods called (in order to
+    // avoid circular reference serialization traps).
+    toJSON: function(shallow) {
       var data = Backbone.Model.prototype.toJSON.apply(this, arguments);
       var iterator = function(_value) {
-        return (_value && _value.toJSON) ? _value.toJSON() : _value;
+        return (_value && _value.toJSON) ? _value.toJSON(true) : _value;
       };
       var key;
       var value;
 
+      shallow = !!shallow;
+
+      if (shallow) {
+        return data;
+      }
+
       for (key in data) {
         value = data[key];
 
-        if (_.isFunction(value)) {
-          value = value();
-          
-          if (_.isArray(value)) {
-            value = _.map(value, iterator);
-          }
-
-          data[key] = value;
+        if (_.isArray(value)) {
+          value = data[key] = _.map(value, iterator);
         }
 
         if (value && value.toJSON) {
-          data[key] = value.toJSON();
+          data[key] = value.toJSON(true);
         }
       }
 

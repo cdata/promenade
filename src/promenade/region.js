@@ -23,7 +23,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
 
       this._resetContainer();
 
-      // The region listens to the before:render and render events of the 
+      // The region listens to the before:render and render events of the
       // ``superview`` in order to determine when it is appropriate to detach
       // and reattach any ``subviews`` that it contains.
       this.listenTo(this.superview, 'before:render', this._detachSubviews);
@@ -80,7 +80,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         }
       }, this);
 
-      this.subviews = _.without(this.subviews, views);
+      this.subviews = _.difference(this.subviews, views);
     },
 
     // The ``insertAt`` method does what you might think: inserts a ``view`` at

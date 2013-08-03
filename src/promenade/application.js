@@ -16,6 +16,8 @@ define(['backbone', 'underscore', 'jquery', 'require'],
     // ``root`` property, respectively.
     root: 'body',
 
+    session: 'user_session',
+
     // The ``controllers`` property should be declared as an ``Array`` of
     // ``Promenade.Controller`` class references. These references are used
     // to instantiate ``Controller`` instances that will govern the routing
@@ -39,12 +41,22 @@ define(['backbone', 'underscore', 'jquery', 'require'],
 
       this._initializeModels();
 
+      // All instantiated resources are listened to for ``'sync'`` events in
+      // order to support data propagation.
+      this.listenTo(this, 'before:sync', this._onModelSync);
+
       // The ``$rootElement`` and ``rootElement`` properties are created on the
       // ``Application`` instance during initialization.
       this.$rootElement = $(this.root);
       this.rootElement = this.$rootElement.get(0);
 
-      this.useView(view);
+      this.initializes = this.setup().then(_.bind(function() {
+        this.useView(view);
+      }, this));
+    },
+
+    setup: function() {
+      return (new $.Deferred()).resolve().promise();
     },
 
     // The ``getResource`` method can be called to lookup a backing datastore
@@ -74,6 +86,14 @@ define(['backbone', 'underscore', 'jquery', 'require'],
       return this.camelize(type) + 'Model';
     },
 
+    hasSession: function() {
+      return !!this.getSession();
+    },
+
+    getSession: function() {
+      return this.getModelForType(_.result(this, 'session'));
+    },
+
     // When assigning ``Collection`` and ``Model`` instances to the
     // ``Application`` instance as properties, we must gracefully hadnle cases
     // where a resolved ``type`` value is not camelized. This helper function
@@ -94,7 +114,8 @@ define(['backbone', 'underscore', 'jquery', 'require'],
         }
 
         if (i !== 0) {
-          part = part.substr(0, 1).toUpperCase() + part.substr(1, part.length - 1);
+          part = part.substr(0, 1).toUpperCase() +
+                 part.substr(1, part.length - 1);
         }
 
         string += part;
@@ -137,7 +158,9 @@ define(['backbone', 'underscore', 'jquery', 'require'],
       // The new ``view`` is created either by instantiating a provided class,
       // or by setting a provided instance.
       if (_.isFunction(View)) {
-        view = new View();
+        view = new View({
+          model: this.getSession()
+        });
       } else {
         view = View;
       }
@@ -164,9 +187,6 @@ define(['backbone', 'underscore', 'jquery', 'require'],
         var type = _.result(model, 'type');
         var namespace = _.result(model, 'namespace');
 
-        // All instantiated resources are listened to for ``'sync'`` events in
-        // order to support data propagation.
-        this.listenTo(model, 'sync', this._onModelSync);
 
         if (model instanceof Backbone.Collection) {
           this[this.getCollectionName(type)] = model;

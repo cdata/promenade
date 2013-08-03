@@ -75,72 +75,6 @@ define(['backbone', 'promenade', 'promenade/collection'],
       });
     });
 
-    describe('when a subset is requested', function() {
-      var superset;
-      var subset;
-
-      beforeEach(function() {
-        superset = new Collection();
-        for (var i = 0; i < 10; ++i) {
-          superset.add({ id: i });
-        }
-
-        subset = superset.subset(function(model) {
-          return window.parseInt(model.id, 10) > 4;
-        });
-      });
-
-      it('yields a Collection with existing items matching the filter', function() {
-        expect(subset).to.be.a(Collection);
-        expect(subset.length).to.be(5);
-      });
-
-      it('does not remove items from the superset by being created', function() {
-        expect(superset.length).to.be(10);
-      });
-
-      it('updates the subset when items are added to the superset', function() {
-        superset.add({ id: 11 });
-
-        expect(subset.length).to.be(6);
-        expect(superset.length).to.be(11);
-        expect(subset.get(11)).to.be(superset.get(11));
-      });
-
-      it('does not update the subset when items are added that do not match the filter', function() {
-        superset.add({ id: -1 });
-
-        expect(subset.length).to.be(5);
-        expect(superset.length).to.be(11);
-        expect(subset.get(-1)).to.not.be.ok();
-        expect(superset.get(-1)).to.be.ok();
-      });
-      
-      it('updates the subset when items are removed from the superset', function() {
-        superset.remove(5);
-
-        expect(superset.get(5)).to.not.be.ok();
-        expect(subset.get(5)).to.not.be.ok();
-        expect(subset.length).to.be(4);
-      });
-
-      it('updates the superset when items are added to the subset', function() {
-        subset.add({ id: 11 });
-
-        expect(superset.length).to.be(11);
-        expect(subset.length).to.be(6);
-        expect(superset.get(11)).to.be(subset.get(11));
-      });
-
-      it('updates the superset when items are removed from the subset', function() {
-        subset.remove(5);
-
-        expect(superset.get(5)).to.not.be.ok();
-        expect(superset.length).to.be(9);
-        expect(subset.get(5)).to.not.be.ok();
-        expect(subset.length).to.be(4);
-      });
-    });
 
     describe('with no namespace declared', function() {
       var MyCollection;
@@ -177,7 +111,7 @@ define(['backbone', 'promenade', 'promenade/collection'],
 
         beforeEach(function() {
           collection.add({ id: 0 }, { id: 1 }, { id: 2 });
-          doesNotExist = { id: 4 };
+          doesNotExist = new collection.model({ id: 4 });
         });
 
         it('returns the set of models in an array', function() {
@@ -191,7 +125,7 @@ define(['backbone', 'promenade', 'promenade/collection'],
           expect(models[2]).to.be(collection.get(2));
         });
 
-        it('returns undefined for lookup value indices for which models are not found', 
+        it('returns undefined when getting by non-existant model instance', 
            function() {
           var model = collection.get(doesNotExist);
 
@@ -204,8 +138,11 @@ define(['backbone', 'promenade', 'promenade/collection'],
           beforeEach(function() {
             collection.url = null;
           });
-          it('returns undefined', function() {
-            expect(collection.get(100)).to.be(undefined);
+          it('returns an empty model', function() {
+            var model = collection.get(100);
+
+            expect(collection.get(100)).to.be.ok();
+            expect(model).to.be.a(collection.model);
           });
         });
         describe('with a model reference', function() {

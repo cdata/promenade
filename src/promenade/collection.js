@@ -1,5 +1,5 @@
-define(['backbone', 'underscore', 'promenade/model'],
-       function(Backbone, _, Model) {
+define(['backbone', 'underscore', 'require', 'promenade/model'],
+       function(Backbone, _, require, Model) {
   'use strict';
   // Promenade.Collection
   // --------------------
@@ -7,8 +7,6 @@ define(['backbone', 'underscore', 'promenade/model'],
   // A ``Promenade.Collection`` is the same as a ``Backbone.Collection``, with
   // some added functionality and pre-defined default behavior.
   var Collection = Backbone.Collection.extend({
-
-    
 
     // The default model class for a Promenade ``Collection`` is the Promenade
     // ``Model``.
@@ -43,15 +41,6 @@ define(['backbone', 'underscore', 'promenade/model'],
       // to support reference passing of a top-level application down a deeply
       // nested chain of ``Collection`` and ``Model`` instances.
       this.app = options.app;
-
-      // A provided superset will also be assigned to the ``Collection``. This
-      // allows holders of a reference to a ``subset`` to refer to a
-      // ``superset`` when adding, removing and reseting models is required.
-      this.superset = options.superset;
-
-      if (_.isArray(options.seed)) {
-        this._seed(options.seed);
-      }
     },
 
     // Promenade's ``Collection`` extends the default behavior of the ``get``
@@ -69,7 +58,7 @@ define(['backbone', 'underscore', 'promenade/model'],
           return this.get(_id);
         }, this);
       }
-      
+
       model = Backbone.Collection.prototype.get.apply(this, arguments);
 
       // If the model is found by Backbone's default ``get`` implementation,
@@ -78,27 +67,40 @@ define(['backbone', 'underscore', 'promenade/model'],
         return model;
       }
 
-      // Otherwise, if we are not looking up by String or Number ``id``, we
-      // do nothing.
-      if (!_.isString(id) && !_.isNumber(id)) {
+      if (_.isObject(id) && id instanceof Backbone.Model) {
         return;
       }
 
-      // If there is no ``url`` or ``model`` defined for this collection, we
+      if (this.model && id) {
+        if (_.isString(id) || _.isNumber(id)) {
+          id = { id: id };
+        }
+
+        // Here we create the model via the mechanism used by
+        // ``Backbone.Collection``.
+        model = this._prepareModel(id);
+        id = model.id;
+        this.add(model);
+      }
+
+      // If there is no ``url`` defined for this collection, we
       // can not automatically create and fetch the model.
-      if (!this.url || !this.model) {
-        return;
+      if (this.url && model) {
+
+        // We pre-emptively fetch the model from the server.
+        model.fetch();
       }
-
-      // Here we create the model via the mechanism used by
-      // ``Backbone.Collection``.
-      model = this._prepareModel({ id: id });
-
-      // The model is added to the collection and fetched from the server.
-      this.add(model);
-      model.fetch();
 
       return model;
+    },
+
+    set: function(models, options) {
+      options = _.defaults(options || {}, {
+        merge: true,
+        remove: false
+      });
+
+      return Backbone.Collection.prototype.set.call(this, models, options);
     },
 
     // The default behavior of parse is extended to support the added
@@ -109,73 +111,34 @@ define(['backbone', 'underscore', 'promenade/model'],
       return Model.prototype.parse.apply(this, arguments);
     },
 
+    sync: function() {
+      return Model.prototype.sync.apply(this, arguments);
+    },
+
     // A subset ``Collection`` instance can be created that represents the set
     // of ``models`` in the superset remaining when filtered by ``iterator``.
     // All semantics of ``_.filter`` apply when filtering a subset. The returned
     // ``Collection`` instance is an instance of ``Promenade.Collection`` by
     // default.
     subset: function(iterator, options) {
-      var subset;
+      var SubsetCollection = require('promenade/collection/subset');
+      var models;
 
-      options = _.defaults(options || {}, {
+      if (_.isArray(iterator)) {
+        models = iterator;
+        iterator = undefined;
+      } else {
+        models = this.filter(iterator);
+      }
+
+      options = _.extend(options || {}, {
         app: this.app,
         superset: this,
-        seed: this.filter(iterator)
+        iterator: iterator
       });
 
-      subset = new Collection(null, options);
-
-      if (subset.comparator) {
-        subset.sort({ silent: true });
-      }
-
-      // The ``'add'``, ``'remove'`` and ``'reset'`` events are listened to by
-      // the ``subset`` on the superset ``Collection`` instance so that changes
-      // to the superset are reflected automatically in the ``subset``.
-      // When a ``subset`` is no longer being used, ``stopListening`` should
-      // be called on it so that the automatically created listeners are cleaned
-      // up.
-      subset.listenTo(this, 'add', function(model) {
-        if (iterator(model)) {
-          console.log('added', model);
-          Backbone.Collection.prototype.add.call(subset, model);
-        }
-      });
-
-      subset.listenTo(this, 'remove', function(model) {
-        Backbone.Collection.prototype.remove.call(subset, model);
-      });
-
-      subset.listenTo(this, 'reset', function() {
-        Backbone.Collection.prototype.reset.call(subset, model);
-      });
-
-      return subset;
+      return new SubsetCollection(models, options);
     },
-
-    // This method is used when a ``Collection`` is being instantiated as a
-    // subset of another collection. It represents the most silent way possible
-    // to set an initial set of models on the ``Collection``.
-    _seed: function(models) {
-      var i;
-      var model;
-
-      this.models = models;
-      this.length = models.length;
-
-      for (i = 0; i < models.length; ++i) {
-        model = models[i];
-
-        model.on('all', this._onModelEvent, this);
-
-        this._byId[model.cid] = model;
-
-        if (model.id !== null && model.id !== undefined) {
-          this._byId[model.id] = model;
-        }
-      }
-    },
-
 
     // The internal ``_prepareModel`` method in the ``Collection`` is extended
     // to support propagation of any internal ``app`` references. This ensures
@@ -208,23 +171,6 @@ define(['backbone', 'underscore', 'promenade/model'],
       return Backbone.Collection.prototype._prepareModel.call(this,
                                                               attrs, options);
     }
-  });
-
-  // When a ``superset`` is assigned to a ``Collection`` instance, any in-place
-  // manipulation of the ``Collection`` instance is redirected to the
-  // ``superset``. Changes will automatically reflect in the ``Collection`` as
-  // events propagate.
-  _.each(['add', 'remove', 'reset', 'push', 'pop', 'shift', 'unshift',
-          'create', 'fetch'], function(method) {
-    var originalMethod = Collection.prototype[method];
-
-    Collection.prototype[method] = function() {
-      if (this.superset) {
-        return this.superset[method].apply(this.superset, arguments);
-      }
-
-      return originalMethod.apply(this, arguments);
-    };
   });
 
   return Collection;

@@ -40,6 +40,7 @@ define(['promenade', 'promenade/model'],
 
       var MyApp;
       var MyNamespacedCollection;
+      var MyStructuredModel;
       var app;
 
       beforeEach(function() {
@@ -48,10 +49,18 @@ define(['promenade', 'promenade/model'],
           type: 'foo'
         });
 
+        MyStructuredModel = Promenade.Model.extend({
+          namespace: 'vim',
+          structure: {
+            foos: Backbone.Collection
+          }
+        });
+
         MyApp = Promenade.Application.extend({
           models: [
             MyNamespacedCollection,
-            MyNamespacedModel
+            MyNamespacedModel,
+            MyStructuredModel
           ]
         });
 
@@ -89,25 +98,60 @@ define(['promenade', 'promenade/model'],
           });
         });
 
-        it('serializes JSON with embedded references serialized as well', function() {
-          var data = app.barModel.toJSON();
+        describe('and a structure is declared', function() {
+          beforeEach(function() {
+            app.vimModel.set({
+              foos: [{
+                id: 1,
+                type: 'foo'
+              }]
+            });
+          });
 
-          expect(data).to.be.eql({
-            foo: {
-              id: 1,
-              val: 'a'
-            },
-            foos: [{
-              id: 1,
-              val: 'a'
-            }, {
-              id: 2,
-              val: 'b'
-            }],
-            vim: {
-              id: 1,
-              type: 'vim'
-            }
+          it('creates a type containing embedded references', function() {
+            var collection = app.vimModel.get('foos');
+
+            expect(collection).to.be.a(Backbone.Collection);
+            expect(collection.at(0)).to.be(app.fooCollection.get(1));
+          });
+
+          describe('and the raw value is updated in place', function() {
+            it('updates the collection reference in place', function() {
+              var collection = app.vimModel.get('foos');
+              app.vimModel.set({
+                foos: [{
+                  id: 2,
+                  type: 'foo'
+                }]
+              });
+
+              expect(collection.length).to.be(1);
+              expect(collection.at(0)).to.be(app.fooCollection.get(2));
+            });
+          });
+        });
+
+        describe('when serialized as JSON', function() {
+          it('serializes embedded references as well', function() {
+            var data = app.barModel.toJSON();
+
+            expect(data).to.be.eql({
+              foo: {
+                id: 1,
+                val: 'a'
+              },
+              foos: [{
+                id: 1,
+                val: 'a'
+              }, {
+                id: 2,
+                val: 'b'
+              }],
+              vim: {
+                id: 1,
+                type: 'vim'
+              }
+            });
           });
         });
 
@@ -181,7 +225,7 @@ define(['promenade', 'promenade/model'],
         });
       });
     });
-    
+
 
     describe('with no namespace declared', function() {
       var myModel;

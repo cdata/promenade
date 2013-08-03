@@ -64,13 +64,37 @@ define(['promenade', 'promenade/application'],
         expect(app.rootElement).to.be(document.body);
       });
 
+      describe('and a view is declared', function() {
+        describe('as a view instance', function() {
+          it('sets the current view to the new instance');
+        });
+
+        describe('as a view class', function() {
+          it('instantiates the class uses it as a view');
+        });
+
+        describe('as a string', function() {
+          it('resolves the class as an AMD module');
+        });
+
+        describe('and a different view is set', function() {
+          it('changes the root application view to the new view');
+        });
+
+        describe('and the same view is set', function() {
+          it('does nothing');
+        });
+      });
     });
 
-    describe('models', function() {
+    describe('camelize', function() {
+      it('camelizes an underscore-delimited phrase');
+    });
 
+    describe('wth models', function() {
 
-      describe('given a namespace registered with the application', function() {
-        it('creates a model instance for the namespace', function() {
+      describe('given a type registered with the application', function() {
+        it('creates a model instance for the type', function() {
           expect(app.bazModel).to.be.ok();
           expect(app.bazModel).to.be.a(BazModel);
         });
@@ -125,7 +149,7 @@ define(['promenade', 'promenade/application'],
       });
     });
 
-    describe('with named controllers', function() {
+    describe('with controllers', function() {
       it('registers a route for each route declared', function() {
         var fooRouteRegExp = app._routeToRegExp('foo');
         var barRouteRegExp = app._routeToRegExp('bar');

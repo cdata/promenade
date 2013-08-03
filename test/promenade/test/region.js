@@ -50,6 +50,22 @@ define(['promenade', 'promenade/region'],
 
       });
 
+      describe('when a view is added', function() {
+        it('is appended to the $container element');
+      });
+
+      describe('when a view is removed', function() {
+        it('is removed from the $container element');
+      });
+
+      describe('when a view is inserted', function() {
+        it('is added at the provided index');
+      });
+
+      describe('when a view is shown', function() {
+        it('replaces all current views in the region');
+      });
+
       describe('after render', function() {
         beforeEach(function() {
           myView.render();

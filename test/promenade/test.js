@@ -25,6 +25,7 @@ define(['../promenade'], function() {
            'test/view/collection',
            'test/model',
            'test/collection',
+           'test/collection/subset',
            'test/controller',
            'test/application',
            'test/region',

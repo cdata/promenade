@@ -63,7 +63,6 @@ define(['backbone', 'underscore', 'promenade/object'],
     _onNavigationEvent: function(route) {
       for (var index = 0; index < this._routeMatchers.length; ++index) {
         if (this._routeMatchers[index].test(route)) {
-          this._activate();
           return;
         }
       }
@@ -120,6 +119,7 @@ define(['backbone', 'underscore', 'promenade/object'],
             return arg;
           });
 
+          this._activate();
           this[handler].apply(this, args);
         }, this);
       }

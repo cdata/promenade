@@ -10,7 +10,8 @@ Promenade is a Backbone++ MVC framework, intended to support the rapid developme
 
  - Extends and enhances Backbone.Router
  - Declared controllers define supported routes internally
- - Controllers furnished with an app reference upon instantiation.
+ - Controllers furnished with an app reference upon instantiation
+ - Automatic distribution of namespaced embedded references
 
 ### View
 
@@ -18,22 +19,29 @@ Promenade is a Backbone++ MVC framework, intended to support the rapid developme
  - Declare regions via a layout map
  - Region-based subview handling
  - Subview-, render- and attachment-sensitive event delegation
- - Declarable model events
+ - Declarable model events, and self events
 
 ### CollectionView
 
  - Automatically handles rendering and updating of collections
- - Configurable 'collectionContainer' layout region
+ - Configurable 'outlet' layout region to contain collection item views
 
 ### Model
 
  - Automatic submodel / subcollection creation and serialization
+ - Support for embedded references when paired with an Application
+
+## Collection
+
+ - Adapted to always return an interstitial model when looked up by ``id``
+ - Namespacing support for automatic handling of namespaced response data
+ - Create 'subset' collections which reflect a strongly-linked filtered subset of the parent
 
 ## Building
 
 Promenade's build and testing steps depend on `node`, `npm`, `bower` and `grunt`.
 
-In order to bootstrap your environment to build Promenade, please run:
+In order to bootstrap your environment to build Promenade and related documentation, please run:
 
 ```sh
 npm install

@@ -71,13 +71,6 @@ define(['promenade', 'promenade/view/form'],
           expect(myFormView.$('[type=checkbox]').prop('checked')).to.be(false);
         });
       });
-
-      describe('#serialize', function(){
-        xit('returns form field values an object', function(){
-
-        });
-      });
-
     });
   });
 });

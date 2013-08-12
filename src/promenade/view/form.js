@@ -7,9 +7,11 @@ define(['promenade/view'],
 
   var FormView = View.extend({
 
-    events: {
-      'submit':'triggerSubmit',
-      'click input[type=submit]':'triggerSubmit'
+    events: function() {
+      return {
+        'submit':'triggerSubmit',
+        'click input[type=submit]':'triggerSubmit'
+      }
     },
 
     initialize: function() {

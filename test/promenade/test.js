@@ -17,12 +17,20 @@ define(['../promenade'], function() {
         }
 
         return output + '</ul>';
+      },
+      form: function(){
+        return '<form> \
+          <input type="checkbox" /> \
+          <input type="text" /> \
+          <input type="submit" /> \
+          </form>';
       }
     };
   });
 
   require(['test/view',
            'test/view/collection',
+           'test/view/form',
            'test/model',
            'test/collection',
            'test/collection/subset',

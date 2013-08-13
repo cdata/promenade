@@ -30,6 +30,8 @@ define(['promenade/view'],
       this.items = {};
 
       View.prototype.initialize.apply(this, arguments);
+
+      this.retains(this.getCollection());
     },
 
     // Upon render, we call ``resetItems`` to make sure that every contained
@@ -113,6 +115,13 @@ define(['promenade/view'],
       return this.collection;
     },
 
+    createItemView: function(model) {
+
+      return new this.itemView({
+        model: model
+      }).render();
+    },
+
     // Subviews in a ``CollectionView`` are tracked by the ``cid`` of the models
     // that represent them. This allows us to look up a ``View`` instance by
     // a model instance.
@@ -139,9 +148,7 @@ define(['promenade/view'],
       // instance into our ``'outlet'`` region.
       region = this.getRegion('outlet');
       index = this.getCollection().indexOf(model);
-      view = new this.itemView({
-        model: model
-      }).render();
+      view = this.createItemView(model);
 
       this.items[model.cid] = view;
 

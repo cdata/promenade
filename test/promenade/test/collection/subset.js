@@ -1,11 +1,12 @@
 define(['backbone', 'promenade', 'promenade/collection/subset'],
-       function(Backbone, Promenade, SubsetCollection) {
+       function(Backbone, Promenade, SubsetApi) {
 
-  describe('Promenade.SubsetCollection', function() {
+  describe('Promenade.Collection.Subset', function() {
 
     it('is defined', function() {
-      expect(Promenade.SubsetCollection).to.be.ok();
-      expect(SubsetCollection).to.be.ok();
+      console.log(Promenade.Collection, SubsetApi);
+      expect(Promenade.Collection.Subset).to.be.ok();
+      expect(SubsetApi).to.be.ok();
     });
 
     describe('when there is a collection', function() {
@@ -25,10 +26,12 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
           subset = superset.subset(function(model) {
             return window.parseInt(model.id, 10) > 4;
           });
+
+          subset.connect();
         });
 
-        it('yields a SubsetCollection with existing items matching the filter', function() {
-          expect(subset).to.be.a(SubsetCollection);
+        it('yields another instance with existing items matching the filter', function() {
+          expect(subset).to.be.a(Promenade.Collection);
           expect(subset.length).to.be(5);
         });
 
@@ -43,7 +46,7 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
           });
 
           afterEach(function() {
-            subset.disconnect();
+            subset.release();
           });
 
           describe('and items are added to the subset', function() {
@@ -88,7 +91,7 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
                 var model;
 
                 superset.add({ id: -1 });
-                
+
                 model = superset.get(-1);
 
                 expect(subset.length).to.be(5);

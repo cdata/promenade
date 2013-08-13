@@ -73,11 +73,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       }
 
       _.each(views, function(view) {
-        if (view instanceof PromenadeView) {
-          view.detach();
-        } else {
-          view.remove();
-        }
+        view.remove();
       }, this);
 
       this.subviews = _.difference(this.subviews, views);

@@ -82,7 +82,7 @@ define(['backbone', 'underscore', 'promenade/object'],
     //     });
     //   }
     //   // ...
-    //  
+    //
     // Will define the following routes:
     //
     //   {

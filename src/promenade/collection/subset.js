@@ -1,30 +1,49 @@
-define(['backbone', 'underscore', 'promenade/collection'],
-       function(Backbone, _, Collection) {
+define(['backbone', 'underscore'],
+       function(Backbone, _) {
   'use strict';
-  var SubsetCollection = Collection.extend({
-    initialize: function(models, options) {
-      Collection.prototype.initialize.apply(this, arguments);
-      options = options || {};
 
-      // A provided superset will also be assigned to the ``SubsetCollection``.
-      // This allows holders of a reference to a ``subset`` to refer to a
-      // ``superset`` when adding, removing and reseting models is required.
+  var SubsetApi = {
+
+    configure: function(options) {
+      this._prototype = this.constructor.prototype;
+
       this.superset = options.superset;
       this.iterator = options.iterator;
 
-      if (!this.iterator) {
-        this.iterator = _.bind(this._filterAllowed, this);
-      }
-
       this._connected = false;
+      this._connectionStack = [];
+      this._connectionMap = {};
 
-      if (_.isArray(models)) {
-        this._seed(models);
-      }
+      this.cid = _.uniqueId();
     },
 
     connect: function() {
+      var connection = this._makeConnection();
 
+      this._connectionMap[connection.id] = connection;
+      this._connectionStack.push(connection.id);
+
+      this._connectToSuperset();
+
+      return connection;
+    },
+
+    release: function(connection) {
+      connection = connection && this._connectionMap[connection.id];
+
+      if (!connection) {
+        return;
+      }
+
+      this._connectionMap[connection.id] = null;
+      this._connectionStack.pop();
+
+      if (!this._connectionStack.length) {
+        this._disconnectFromSuperset();
+      }
+    },
+
+    _connectToSuperset: function() {
       // The ``'add'``, ``'remove'`` and ``'reset'`` events are listened to by
       // the ``subset`` on the superset ``Collection`` instance so that changes
       // to the superset are reflected automatically in the ``subset``.
@@ -36,19 +55,39 @@ define(['backbone', 'underscore', 'promenade/collection'],
         this.listenTo(this.superset, 'remove', this._onSupersetRemove);
         this.listenTo(this.superset, 'reset', this._onSupersetReset);
         this.listenTo(this.superset, 'change', this._onSupersetChange);
+
+        this._prototype.add.call(this, this.superset.filter(this.iterator), {
+          fromSuperset: true
+        });
+
         this._connected = true;
       }
 
       return this;
     },
 
-    disconnect: function() {
+    _disconnectFromSuperset: function() {
       if (this.superset && this._connected) {
         this.stopListening(this.superset);
+
+        this.reset(null, { silent: true });
+
         this._connected = false;
       }
 
       return this;
+    },
+
+    _makeConnection: function() {
+      var subset = this;
+      var connection = {
+        id: _.uniqueId(),
+        release: function() {
+          subset.release(this);
+        }
+      };
+
+      return connection;
     },
 
     _onSupersetAdd: function(model) {
@@ -56,15 +95,21 @@ define(['backbone', 'underscore', 'promenade/collection'],
         return;
       }
 
-      Backbone.Collection.prototype.add.call(this, model);
+      this._prototype.add.call(this, model, {
+        fromSuperset: true
+      });
     },
 
     _onSupersetRemove: function(model) {
-      Backbone.Collection.prototype.remove.call(this, model);
+      this._prototype.remove.call(this, model, {
+        fromSuperset: true
+      });
     },
 
     _onSupersetReset: function() {
-      Backbone.Collection.prototype.reset.call(this);
+      this._prototype.reset.call(this, null, {
+        fromSuperset: true
+      });
     },
 
     _onSupersetChange: function(model) {
@@ -72,69 +117,49 @@ define(['backbone', 'underscore', 'promenade/collection'],
         return;
       }
 
-      Backbone.Collection.prototype.add.call(this, model);
+      this._prototype.add.call(this, model, {
+        fromSuperset: true
+      });
     },
 
-    // This method is used when a ``SubsetCollection`` is being instantiated
-    // with a non-empty list of models. It represents the most silent way
-    // possible to set an initial set of models on the ``SubsetCollection``.
-    _seed: function(models) {
-      var i;
-      var model;
+    toArray: function() {
+      var result;
 
-      this.models = models;
-      this.length = models.length;
-
-      for (i = 0; i < models.length; ++i) {
-        model = models[i];
-
-        model.on('all', this._onModelEvent, this);
-
-        this._byId[model.cid] = model;
-
-        if (model.id !== null && model.id !== undefined) {
-          this._byId[model.id] = model;
-        }
+      if (this._connected) {
+        return this._prototype.toArray.apply(this, arguments);
       }
 
-      if (this.comparator) {
-        this.sort({ silent: true });
+      this._connectToSuperset();
+
+      result = this._prototype.toArray.apply(this, arguments);
+
+      this._disconnectFromSuperset();
+
+      return result;
+    },
+
+    set: function(models, options) {
+      if (options && options.fromSuperset) {
+        return this._prototype.set.apply(this, arguments);
       }
-    },
 
-    // These methods need to be neutered.
-    push: function() {
-      return this.length;
-    },
-
-    pop: function() {},
-
-    unshift: function() {
-      return this.length;
-    },
-
-    shift: function() {},
-
-    reset: function() {
-      return this;
+      return this.superset.set.call(this.superset, arguments);
     }
-  });
+  };
+
 
   // When a ``superset`` is assigned to a ``SubsetCollection`` instance, any
   // in-place manipulation of the ``SubsetCollection`` instance is redirected to
   // the ``superset``. Changes will automatically reflect in the
   // ``SubsetCollection`` as events propagate.
   _.each(['add', 'remove', 'create', 'fetch'], function(method) {
-    var originalMethod = SubsetCollection.prototype[method];
-
-    SubsetCollection.prototype[method] = function() {
+    SubsetApi[method] = function() {
       if (this.superset && this._connected) {
         return this.superset[method].apply(this.superset, arguments);
       }
-
-      return originalMethod.apply(this, arguments);
     };
   });
 
-  return SubsetCollection;
+
+  return SubsetApi;
 });

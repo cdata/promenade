@@ -1,5 +1,5 @@
-define(['backbone', 'require'],
-       function(Backbone, require) {
+define(['backbone', 'require', 'promenade/collection/retainer'],
+       function(Backbone, require, RetainerApi) {
   'use strict';
   // Promenade.Model
   // ---------------
@@ -51,14 +51,22 @@ define(['backbone', 'require'],
     // parsing it.
     namespace: '',
 
+    appEvents: {},
+
     initialize: function(attrs, options) {
       Backbone.Model.prototype.initialize.apply(this, arguments);
+
+
+      options = options || {};
 
       // On initialize, the ``Model`` creates a class property that refers to an
       // app instance, if provided in the options. This behavior is used to
       // support reference passing of a top-level ``Application`` down a deeply
       // nested chain of ``Collection`` and ``Model`` instances.
-      this.app = options && options.app;
+      this.app = options.app;
+
+      this._ensureReady(options);
+      this._listenToApp();
     },
 
     // The default behavior of parse is extended to support the added
@@ -93,14 +101,20 @@ define(['backbone', 'require'],
       success = options.success;
 
       options.success = function(resp) {
-        if (model.app) {
-          model.app.trigger('before:sync', model, resp, options);
+        var app = model.app;
+
+        if (app) {
+          app.trigger('before:sync', model, resp, options);
         }
 
         model.trigger('before:sync', model, resp, options);
 
         if (success) {
           success.apply(options, arguments);
+        }
+
+        if (app) {
+          app.trigger('sync', model, resp, options);
         }
       };
 
@@ -111,6 +125,7 @@ define(['backbone', 'require'],
     // new relationships between ``Model``, ``Collection`` and ``Application``
     // instances.
     set: function(key, value, options) {
+      var structure = _.result(this, 'structure');
       var attrs;
       var attr;
       var Type;
@@ -147,8 +162,8 @@ define(['backbone', 'require'],
         // If an attribute is in our ``structure`` map, it means we should
         // ensure that the ultimate attribute value is an instance of the class
         // associated with the declared type.
-        if (attr in this.structure) {
-          Type = this.structure[attr];
+        if (attr in structure) {
+          Type = structure[attr];
 
           // If the type value is a ``String``, then we resolve the class using
           // an AMD API.
@@ -253,6 +268,37 @@ define(['backbone', 'require'],
       return value;
     },
 
+    _ensureReady: function(options) {
+      var getsReady = new $.Deferred();
+
+      if (options.needsSync === false) {
+        getsReady.resolve();
+      } else {
+        this.once('sync', function() {
+          getsReady.resolve();
+        });
+
+        this.once('update', function() {
+          getsReady.resolve();
+        });
+      }
+
+      this.isReady = getsReady.promise();
+    },
+
+    _listenToApp: function() {
+      var appEvents;
+      var eventName;
+
+      if (this.app) {
+        appEvents = _.result(this, 'appEvents');
+
+        for (eventName in appEvents) {
+          this.listenTo(this.app, eventName, this[appEvents[eventName]]);
+        }
+      }
+    },
+
     // The ``_pluralizeString`` method returns the plural version of a provided
     // string, or the string itself if it is deemed to already be a pluralized
     // string. Presently, the implementation of this method is not robust. It
@@ -277,6 +323,15 @@ define(['backbone', 'require'],
       return string.substr(0, string.length - offset) + suffix;
     },
 
+    toReference: function() {
+      return {
+        type: _.result(this, 'type'),
+        id: _.result(this, 'id')
+      };
+    },
+
+    defaultSerializationDepth: 1,
+
     // JSON serialization has been expanded to accomodate for the new value
     // types that the ``Model`` supports. If any values resolved in the scope of
     // the expanded method have their own ``toJSON`` method, those values are
@@ -284,17 +339,20 @@ define(['backbone', 'require'],
     // to ``toJSON`` will result in a shallow serialization where embedded
     // references will not have their ``toJSON`` methods called (in order to
     // avoid circular reference serialization traps).
-    toJSON: function(shallow) {
+    toJSON: function(depth) {
       var data = Backbone.Model.prototype.toJSON.apply(this, arguments);
       var iterator = function(_value) {
-        return (_value && _value.toJSON) ? _value.toJSON(true) : _value;
+        return (_value && _value.toJSON) ?
+            _value.toJSON(depth - 1) : _value;
       };
       var key;
       var value;
 
-      shallow = !!shallow;
+      if (typeof depth === 'undefined') {
+        depth = this.defaultSerializationDepth;
+      }
 
-      if (shallow) {
+      if (depth === 0) {
         return data;
       }
 
@@ -306,7 +364,7 @@ define(['backbone', 'require'],
         }
 
         if (value && value.toJSON) {
-          data[key] = value.toJSON(true);
+          data[key] = value.toJSON(depth - 1);
         }
       }
 
@@ -319,6 +377,8 @@ define(['backbone', 'require'],
       ENDS_IN_S: /s$/
     }
   });
+
+  _.extend(Model.prototype, RetainerApi);
 
   return Model;
 });

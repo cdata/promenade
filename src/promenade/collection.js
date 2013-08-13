@@ -1,5 +1,5 @@
-define(['backbone', 'underscore', 'require', 'promenade/model'],
-       function(Backbone, _, require, Model) {
+define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/collection/retainer', 'promenade/collection/subset'],
+       function(Backbone, _, require, Model, RetainerApi, SubsetApi) {
   'use strict';
   // Promenade.Collection
   // --------------------
@@ -11,6 +11,8 @@ define(['backbone', 'underscore', 'require', 'promenade/model'],
     // The default model class for a Promenade ``Collection`` is the Promenade
     // ``Model``.
     model: Model,
+
+    appEvents: {},
 
     // When defined for a ``Collection`` that is associated with an
     // ``Application``, the ``type`` is used as part of the property name that
@@ -41,6 +43,17 @@ define(['backbone', 'underscore', 'require', 'promenade/model'],
       // to support reference passing of a top-level application down a deeply
       // nested chain of ``Collection`` and ``Model`` instances.
       this.app = options.app;
+
+      this._ensureReady(options);
+      this._listenToApp();
+    },
+
+    _listenToApp: function() {
+      Model.prototype._listenToApp.call(this);
+    },
+
+    _ensureReady: function(options) {
+      Model.prototype._ensureReady.call(this, options);
     },
 
     // Promenade's ``Collection`` extends the default behavior of the ``get``
@@ -78,7 +91,9 @@ define(['backbone', 'underscore', 'require', 'promenade/model'],
 
         // Here we create the model via the mechanism used by
         // ``Backbone.Collection``.
-        model = this._prepareModel(id);
+        model = this._prepareModel(id, {
+          needsSync: true
+        });
         id = model.id;
         this.add(model);
       }
@@ -121,15 +136,8 @@ define(['backbone', 'underscore', 'require', 'promenade/model'],
     // ``Collection`` instance is an instance of ``Promenade.Collection`` by
     // default.
     subset: function(iterator, options) {
-      var SubsetCollection = require('promenade/collection/subset');
-      var models;
-
-      if (_.isArray(iterator)) {
-        models = iterator;
-        iterator = undefined;
-      } else {
-        models = this.filter(iterator);
-      }
+      var CollectionClass = this.constructor;
+      var subset;
 
       options = _.extend(options || {}, {
         app: this.app,
@@ -137,7 +145,11 @@ define(['backbone', 'underscore', 'require', 'promenade/model'],
         iterator: iterator
       });
 
-      return new SubsetCollection(models, options);
+      subset = new CollectionClass(null, options);
+      _.extend(subset, SubsetApi);
+      subset.configure(options);
+
+      return subset;
     },
 
     // The internal ``_prepareModel`` method in the ``Collection`` is extended
@@ -151,7 +163,8 @@ define(['backbone', 'underscore', 'require', 'promenade/model'],
       // Provided options, if any, are defaulted to contain a reference to this
       // ``Collection`` instance's corresponding ``app``.
       options = _.defaults(options || {}, {
-        app: this.app
+        app: this.app,
+        needsSync: false
       });
 
       namespace = _.result(this.model.prototype, 'namespace');
@@ -172,6 +185,11 @@ define(['backbone', 'underscore', 'require', 'promenade/model'],
                                                               attrs, options);
     }
   });
+
+  _.extend(Collection.prototype, RetainerApi);
+
+  Collection.Subset = SubsetApi;
+  Collection.Retainer = RetainerApi;
 
   return Collection;
 });

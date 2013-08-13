@@ -43,7 +43,8 @@ define(['backbone', 'underscore', 'jquery', 'require'],
 
       // All instantiated resources are listened to for ``'sync'`` events in
       // order to support data propagation.
-      this.listenTo(this, 'before:sync', this._onModelSync);
+      this.listenTo(this, 'before:sync', this._onBeforeSync);
+      this.listenTo(this, 'sync', this._onSync);
 
       // The ``$rootElement`` and ``rootElement`` properties are created on the
       // ``Application`` instance during initialization.
@@ -204,11 +205,12 @@ define(['backbone', 'underscore', 'jquery', 'require'],
     // the network response to determine if there is any data that applies to
     // resources in other namespaces. If there is, the data in the namespace is
     // propagated to the known corresponding resources.
-    _onModelSync: function(model, response, options) {
+    _onBeforeSync: function(model, response, options) {
       var originalNamespace = _.result(model, 'namespace');
 
       _.each(response, function(data, key) {
         var otherModel = this._namespace[key];
+        var otherType;
         var otherData;
 
         if (key !== originalNamespace &&
@@ -216,8 +218,22 @@ define(['backbone', 'underscore', 'jquery', 'require'],
              otherModel instanceof Backbone.Collection)) {
           otherData = otherModel.parse.call(otherModel, response);
           otherModel.set(otherData);
+
+          otherType = _.result(otherModel, 'type');
+
+          if (otherType) {
+            this.trigger('update:' + otherType, otherModel);
+            otherModel.trigger('update', otherModel);
+          }
         }
       }, this);
+    },
+
+    _onSync: function(model, response, options) {
+      var type = _.result(model, 'type');
+
+      this.trigger('update:' + type, model);
+      model.trigger('update', model);
     },
 
     // The default ``_bindRoutes`` behavior is extended to support the

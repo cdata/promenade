@@ -1,5 +1,5 @@
-define(['backbone', 'templates', 'underscore', 'promenade/region'],
-       function(Backbone, templates, _, Region) {
+define(['backbone', 'templates', 'underscore', 'promenade/region', 'promenade/collection/retainer'],
+       function(Backbone, templates, _, Region, RetainerApi) {
   'use strict';
   // Promenade.View
   // --------------
@@ -140,6 +140,7 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
     // the ``View`` instance itself are also unbound.
     remove: function() {
       this.undelegateEvents();
+      this.releaseConnections();
       Backbone.View.prototype.remove.apply(this, arguments);
       return this;
     },
@@ -199,6 +200,8 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
       return region + 'Region';
     },
 
+    serializationDepth: 1,
+
     // The ``serializeModelData`` method is intended to provide an override-able
     // method for translating a ``model`` or ``collection`` into serialized
     // data consumable by the given template, if any.
@@ -207,9 +210,11 @@ define(['backbone', 'templates', 'underscore', 'promenade/region'],
         return {};
       }
 
-      return this.getModel().toJSON();
+      return this.getModel().toJSON(_.result(this, 'serializationDepth'));
     }
   });
+
+  _.extend(View.prototype, RetainerApi);
 
   return View;
 });

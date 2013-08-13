@@ -14,12 +14,7 @@ define(['promenade/view'],
       }
     },
 
-    initialize: function() {
-      View.prototype.initialize.apply(this, arguments);
-    },
-
     triggerSubmit: function(event){
-      event.preventDefault();
       this.trigger('submit');
       return false;
     },

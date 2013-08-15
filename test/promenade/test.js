@@ -19,11 +19,11 @@ define(['../promenade'], function() {
         return output + '</ul>';
       },
       form: function(){
-        return '<form> \
-          <input type="checkbox" /> \
-          <input type="text" /> \
-          <input type="submit" /> \
-          </form>';
+        return '<form> ' +
+          '<input type="checkbox" /> ' +
+          '<input type="text" /> ' +
+          '<input type="submit" /> ' +
+          '</form>';
       }
     };
   });
@@ -34,6 +34,7 @@ define(['../promenade'], function() {
            'test/model',
            'test/collection',
            'test/collection/subset',
+           'test/collection/retainer',
            'test/controller',
            'test/application',
            'test/region',

@@ -207,19 +207,33 @@ define(['backbone', 'underscore', 'jquery', 'require'],
     // propagated to the known corresponding resources.
     _onBeforeSync: function(model, response, options) {
       var originalNamespace = _.result(model, 'namespace');
+      var propagates = _.result(model, 'propagates');
+
+      options = _.defaults(options || {}, {
+        propagate: true,
+        update: true
+      });
+
+      if (!options.propagate) {
+        return;
+      }
 
       _.each(response, function(data, key) {
         var otherModel = this._namespace[key];
         var otherType;
         var otherData;
 
-        if (key !== originalNamespace &&
+        if (key !== originalNamespace && propagates[key] !== false &&
             (otherModel instanceof Backbone.Model ||
              otherModel instanceof Backbone.Collection)) {
           otherData = otherModel.parse.call(otherModel, response);
           otherModel.set(otherData);
 
           otherType = _.result(otherModel, 'type');
+
+          if (!options.update) {
+            return;
+          }
 
           if (otherType) {
             this.trigger('update:' + otherType, otherModel);
@@ -231,6 +245,14 @@ define(['backbone', 'underscore', 'jquery', 'require'],
 
     _onSync: function(model, response, options) {
       var type = _.result(model, 'type');
+
+      options = _.defaults(options || {}, {
+        update: true
+      });
+
+      if (!options.update) {
+        return;
+      }
 
       this.trigger('update:' + type, model);
       model.trigger('update', model);

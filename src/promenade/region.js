@@ -79,6 +79,10 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       this.subviews = _.difference(this.subviews, views);
     },
 
+    empty: function() {
+      this.remove(this.subviews);
+    },
+
     // The ``insertAt`` method does what you might think: inserts a ``view`` at
     // an arbitrary index within the current set of ``subviews``. If the index
     // exceeds the length of the current set of ``subviews``, the ``view`` is

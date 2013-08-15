@@ -1,5 +1,5 @@
-define(['backbone', 'templates', 'underscore', 'promenade/region', 'promenade/collection/retainer'],
-       function(Backbone, templates, _, Region, RetainerApi) {
+define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region', 'promenade/collection/retainer'],
+       function($, Backbone, templates, _, Region, RetainerApi) {
   'use strict';
   // Promenade.View
   // --------------
@@ -15,9 +15,6 @@ define(['backbone', 'templates', 'underscore', 'promenade/region', 'promenade/co
     // either at the class level or overridden in the options, a template
     // is looked up on the resolved ``'templates'`` module.
     initialize: function(options) {
-      var model;
-      var region;
-
       Backbone.View.prototype.initialize.apply(this, arguments);
 
       options = options || {};
@@ -31,16 +28,10 @@ define(['backbone', 'templates', 'underscore', 'promenade/region', 'promenade/co
 
       this.layout = options.layout || this.layout || {};
 
-      // Furthermore, any regions of the ``View`` defined in the ``layout`` map
-      // are created as ``Region`` instances associated with the ``View``
-      // instance.
-      for (region in this.layout) {
-        this[this.getRegionProperty(region)] = new Region({
-          superview: this,
-          selector: this.layout[region]
-        });
-      }
+      this._ensureRegions();
+      this._ensureRenderQueue();
     },
+
 
     // ``delegateEvents`` is a built-in Backbone concept that handles creating
     // event handlers for DOM events. Promenade leverages this concept to
@@ -139,8 +130,15 @@ define(['backbone', 'templates', 'underscore', 'promenade/region', 'promenade/co
     // works, but we need to make sure that events bound to the ``model`` and
     // the ``View`` instance itself are also unbound.
     remove: function() {
+      var region;
+
+      for (region in this.layout) {
+        this[this.getRegionProperty(region)].empty();
+      }
+
       this.undelegateEvents();
       this.releaseConnections();
+
       Backbone.View.prototype.remove.apply(this, arguments);
       return this;
     },
@@ -180,6 +178,10 @@ define(['backbone', 'templates', 'underscore', 'promenade/region', 'promenade/co
       return this.render(true);
     },
 
+    asyncRender: function() {
+      return this._queueRenderOperation(this.render);
+    },
+
     // Model lookup has been formalized so that there are distinct rules for
     // when ``model`` is used, and when ``collection`` is used.
     hasModel: function() {
@@ -211,6 +213,50 @@ define(['backbone', 'templates', 'underscore', 'promenade/region', 'promenade/co
       }
 
       return this.getModel().toJSON(_.result(this, 'serializationDepth'));
+    },
+
+    getRenderQueue: function() {
+      return this._renderQueue.then(_.bind(function() {
+        return this._tick();
+      }, this));
+    },
+
+    pushRenderQueue: function(fn) {
+      this._renderQueue = this.getRenderQueue().then(_.bind(fn, this));
+      return this._renderQueue;
+    },
+
+    _ensureRegions: function() {
+
+      // Any regions of the ``View`` defined in the ``layout`` map
+      // are created as ``Region`` instances associated with the ``View``
+      // instance.
+      for (var region in this.layout) {
+        this[this.getRegionProperty(region)] = new Region({
+          superview: this,
+          selector: this.layout[region]
+        });
+      }
+    },
+
+    _ensureRenderQueue: function() {
+      this._renderQueue = (new $.Deferred()).resolve().promise();
+    },
+
+    _tick: function() {
+      var Result = new $.Deferred();
+
+      if (typeof window.requestAnimationFrame !== 'undefined') {
+        window.requestAnimationFrame(function() {
+          Result.resolve();
+        });
+      } else {
+        window.setTimeout(function() {
+          Result.resolve();
+        }, 0);
+      }
+
+      return Result.promise();
     }
   });
 

@@ -14,6 +14,10 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
 
     appEvents: {},
 
+    setDefaults: {},
+
+    propagates: {},
+
     // When defined for a ``Collection`` that is associated with an
     // ``Application``, the ``type`` is used as part of the property name that
     // the ``Collection`` instance is assigned to on the ``Application``
@@ -100,7 +104,7 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
 
       // If there is no ``url`` defined for this collection, we
       // can not automatically create and fetch the model.
-      if (this.url && model) {
+      if (this.url && model && model.url) {
 
         // We pre-emptively fetch the model from the server.
         model.fetch();
@@ -110,10 +114,10 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
     },
 
     set: function(models, options) {
-      options = _.defaults(options || {}, {
+      options = _.defaults(options || {}, _.extend({
         merge: true,
         remove: false
-      });
+      }, _.result(this, 'setDefaults')));
 
       return Backbone.Collection.prototype.set.call(this, models, options);
     },

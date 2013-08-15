@@ -26,27 +26,78 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
           subset = superset.subset(function(model) {
             return window.parseInt(model.id, 10) > 4;
           });
-
-          subset.connect();
         });
 
-        it('yields another instance with existing items matching the filter', function() {
-          expect(subset).to.be.a(Promenade.Collection);
-          expect(subset.length).to.be(5);
+        it('yields an empty collection of the same type', function() {
+          expect(subset).to.be.a(superset.constructor);
+          expect(subset.length).to.be(0);
         });
 
         it('does not damage the superset', function() {
           expect(superset.length).to.be(10);
         });
 
-
         describe('and it is connected to the superset', function() {
+          var connection;
+
           beforeEach(function() {
-            subset.connect();
+            connection = subset.connect();
           });
 
           afterEach(function() {
-            subset.release();
+            connection.release();
+          });
+
+          it('is connected', function() {
+            expect(subset.isConnected()).to.be(true);
+          });
+
+          it('is populated with items from the superset that match the filter', function() {
+            expect(subset.length).to.be(5);
+            expect(subset.iterator(subset.at(0))).to.be(true);
+          });
+
+          it('yields a connection reference', function() {
+            expect(connection).to.be.ok();
+          });
+
+          describe('and a connection is released multiple times', function() {
+            var otherConnection;
+
+            beforeEach(function() {
+              otherConnection = subset.connect();
+            });
+
+            afterEach(function() {
+              otherConnection.release();
+            });
+
+            it('does not cause the subset to disconnect', function() {
+              otherConnection.release();
+              otherConnection.release();
+              otherConnection.release();
+
+              expect(subset.isConnected()).to.be(true);
+            });
+          });
+
+          describe('and the last connection is released', function() {
+            beforeEach(function() {
+              connection.release();
+            });
+
+            it('disconnects and resets the subset', function() {
+              expect(subset.isConnected()).to.be(false);
+              expect(subset.length).to.be(0);
+            });
+          });
+
+          describe('and an item is created on the subset', function() {
+            it('creates the item on the superset');
+          });
+
+          describe('and fetch is called on the subset', function() {
+            it('calls fetch on the superset instead');
           });
 
           describe('and items are added to the subset', function() {

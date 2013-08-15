@@ -1,6 +1,8 @@
 define(['backbone', 'underscore'],
        function(Backbone, _) {
   'use strict';
+  // Promenade.Container.Subset API
+  // ==============================
 
   var SubsetApi = {
 
@@ -43,6 +45,20 @@ define(['backbone', 'underscore'],
       }
     },
 
+    isConnected: function() {
+      return this._connected;
+    },
+
+    connectionCount: function() {
+      return this._connectionStack.length;
+    },
+
+    refresh: function() {
+      this._prototype.add.call(this, this.superset.filter(this.iterator), {
+        fromSuperset: true
+      });
+    },
+
     _connectToSuperset: function() {
       // The ``'add'``, ``'remove'`` and ``'reset'`` events are listened to by
       // the ``subset`` on the superset ``Collection`` instance so that changes
@@ -56,9 +72,7 @@ define(['backbone', 'underscore'],
         this.listenTo(this.superset, 'reset', this._onSupersetReset);
         this.listenTo(this.superset, 'change', this._onSupersetChange);
 
-        this._prototype.add.call(this, this.superset.filter(this.iterator), {
-          fromSuperset: true
-        });
+        this.refresh();
 
         this._connected = true;
       }
@@ -83,7 +97,7 @@ define(['backbone', 'underscore'],
       var connection = {
         id: _.uniqueId(),
         release: function() {
-          subset.release(this);
+          subset.release(connection);
         }
       };
 
@@ -113,29 +127,13 @@ define(['backbone', 'underscore'],
     },
 
     _onSupersetChange: function(model) {
-      if (this.contains(model) || !this.iterator(model)) {
+      if (!this.iterator(model)) {
         return;
       }
 
       this._prototype.add.call(this, model, {
         fromSuperset: true
       });
-    },
-
-    toArray: function() {
-      var result;
-
-      if (this._connected) {
-        return this._prototype.toArray.apply(this, arguments);
-      }
-
-      this._connectToSuperset();
-
-      result = this._prototype.toArray.apply(this, arguments);
-
-      this._disconnectFromSuperset();
-
-      return result;
     },
 
     set: function(models, options) {
@@ -147,6 +145,23 @@ define(['backbone', 'underscore'],
     }
   };
 
+  _.each(['toJSON', 'toArray'], function(method) {
+    SubsetApi[method] = function() {
+      var result;
+
+      if (this._connected) {
+        return this._prototype[method].apply(this, arguments);
+      }
+
+      this._connectToSuperset();
+
+      result = this._prototype[method].apply(this, arguments);
+
+      this._disconnectFromSuperset();
+
+      return result;
+    };
+  });
 
   // When a ``superset`` is assigned to a ``SubsetCollection`` instance, any
   // in-place manipulation of the ``SubsetCollection`` instance is redirected to

@@ -53,6 +53,8 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
 
     appEvents: {},
 
+    propagates: {},
+
     initialize: function(attrs, options) {
       Backbone.Model.prototype.initialize.apply(this, arguments);
 

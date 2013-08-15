@@ -1,6 +1,8 @@
 define(['backbone', 'underscore'],
        function(Backbone, _) {
   'use strict';
+  // Promenade.Container.Retainer API
+  // ================================
 
   var RetainerApi = {
     _verifySubsetApi: function(collection) {

@@ -168,7 +168,8 @@ define(['backbone', 'underscore', 'promenade/object'],
             return id;
           }, this));
           state.generators = _generators;
-          state.fragment = root + fragment + '/:' + fragment;
+          state.fragment = this._formatRoot(root + fragment) + ':' +
+              (type || fragment);
           this._handle(state);
         }),
         // An ``any`` definition behaves like a splat, and thus cannot support
@@ -217,12 +218,12 @@ define(['backbone', 'underscore', 'promenade/object'],
     // expects that fragments have no root path. In all other cases, a trailing
     // slash must be added to the fragment for the sake of any subsequently
     // appended parts.
-    _canonicalizeRoot: function(fragment) {
+    _formatRoot: function(fragment) {
       return fragment ? fragment + '/' : '';
     },
 
     _getDefinitionContext: function(fragment, generators) {
-      return this._createDefinitionContext(this._canonicalizeRoot(fragment),
+      return this._createDefinitionContext(this._formatRoot(fragment),
                                            generators);
     }
   }, {

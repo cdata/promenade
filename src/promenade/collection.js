@@ -48,6 +48,13 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
       // nested chain of ``Collection`` and ``Model`` instances.
       this.app = options.app;
 
+      this._needsSync = options.needsSync !== false;
+      this._synced = false;
+
+      this.once('sync', function() {
+        this._synced = true;
+      }, this);
+
       this._ensureReady(options);
       this._listenToApp();
     },
@@ -58,6 +65,20 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
 
     _ensureReady: function(options) {
       Model.prototype._ensureReady.call(this, options);
+    },
+
+    isNew: function() {
+      return this._needsSync && !this._synced;
+    },
+
+    fetch: function() {
+      this._ensureReady();
+      return Backbone.Collection.prototype.fetch.apply(this, arguments);
+    },
+
+    create: function() {
+      this._ensureReady();
+      return Backbone.Collection.prototype.create.apply(this, arguments);
     },
 
     // Promenade's ``Collection`` extends the default behavior of the ``get``

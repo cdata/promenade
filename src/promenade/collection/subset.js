@@ -2,7 +2,7 @@ define(['backbone', 'underscore'],
        function(Backbone, _) {
   'use strict';
   // Promenade.Container.Subset API
-  // ==============================
+  // ------------------------------
 
   var SubsetApi = {
 
@@ -12,7 +12,7 @@ define(['backbone', 'underscore'],
       this.superset = options.superset;
       this.iterator = options.iterator;
 
-      this._connected = false;
+      this._connection = null;
       this._connectionStack = [];
       this._connectionMap = {};
 
@@ -45,8 +45,12 @@ define(['backbone', 'underscore'],
       }
     },
 
+    hasRootSuperset: function() {
+      return !!(this.superset && !this.superset.superset);
+    },
+
     isConnected: function() {
-      return this._connected;
+      return !!this._connection;
     },
 
     connectionCount: function() {
@@ -66,7 +70,7 @@ define(['backbone', 'underscore'],
       // When a ``subset`` is no longer being used, ``stopListening`` should
       // be called on it so that the automatically created listeners are cleaned
       // up.
-      if (this.superset && !this._connected) {
+      if (this.superset && !this.isConnected()) {
         this.listenTo(this.superset, 'add', this._onSupersetAdd);
         this.listenTo(this.superset, 'remove', this._onSupersetRemove);
         this.listenTo(this.superset, 'reset', this._onSupersetReset);
@@ -74,19 +78,28 @@ define(['backbone', 'underscore'],
 
         this.refresh();
 
-        this._connected = true;
+        this._connection = true;
+
+        if (!this.hasRootSuperset()) {
+          this._connection = this.retains(this.superset);
+        }
       }
 
       return this;
     },
 
     _disconnectFromSuperset: function() {
-      if (this.superset && this._connected) {
+      if (this.superset && this.isConnected()) {
         this.stopListening(this.superset);
 
         this.reset(null, { silent: true });
 
-        this._connected = false;
+
+        if (_.isObject(this._connection)) {
+          this._connection.release();
+        }
+
+        this._connection = false;
       }
 
       return this;
@@ -149,7 +162,7 @@ define(['backbone', 'underscore'],
     SubsetApi[method] = function() {
       var result;
 
-      if (this._connected) {
+      if (this.isConnected()) {
         return this._prototype[method].apply(this, arguments);
       }
 
@@ -169,7 +182,7 @@ define(['backbone', 'underscore'],
   // ``SubsetCollection`` as events propagate.
   _.each(['add', 'remove', 'create', 'fetch'], function(method) {
     SubsetApi[method] = function() {
-      if (this.superset && this._connected) {
+      if (this.superset && this.isConnected()) {
         return this.superset[method].apply(this.superset, arguments);
       }
     };

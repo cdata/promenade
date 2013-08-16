@@ -49,46 +49,52 @@ define(['promenade/view'],
     // By default the ``collectionEvents`` are set up to respond to manipulation
     // events in the given ``collection`` by adding, removing or resetting its
     // subviews.
-    collectionEvents: {
+    _collectionEvents: {
       'add': '_addItemByModel',
       'remove': '_removeItemByModel',
       'reset': '_removeAllItems',
       'sort': 'resetItems'
     },
 
+    collectionEvents: {},
+
     // In support of ``collectionEvents``, the ``delegateEvents`` and
     // ``undelegateEvents`` methods have been expanded.
     delegateEvents: function() {
-      var collection;
-      var eventName;
-
       View.prototype.delegateEvents.apply(this, arguments);
 
       if (this.hasCollection()) {
-        collection = this.getCollection();
+        _.each(['_collectionEvents', 'collectionEvents'], function(eventMap) {
+          var collection;
+          var eventName;
 
-        for (eventName in this.collectionEvents) {
-          this.listenTo(collection, eventName,
-                        this[this.collectionEvents[eventName]]);
-        }
+          collection = this.getCollection();
+
+          for (eventName in this[eventMap]) {
+            this.listenTo(collection, eventName,
+                          this[this[eventMap][eventName]]);
+          }
+        }, this);
       }
 
       return this;
     },
 
     undelegateEvents: function() {
-      var collection;
-      var eventName;
-
       View.prototype.undelegateEvents.apply(this, arguments);
 
       if (this.hasCollection()) {
-        collection = this.getCollection();
+        _.each(['_collectionEvents', 'collectionEvents'], function(eventMap) {
+          var collection;
+          var eventName;
 
-        for (eventName in this.collectionEvents) {
-          this.stopListening(collection, eventName,
-                             this[this.collectionEvents[eventName]]);
-        }
+          collection = this.getCollection();
+
+          for (eventName in this[eventMap]) {
+            this.stopListening(collection, eventName,
+                               this[this[eventMap][eventName]]);
+          }
+        }, this);
       }
 
       return this;

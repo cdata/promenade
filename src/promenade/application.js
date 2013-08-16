@@ -18,6 +18,8 @@ define(['backbone', 'underscore', 'jquery', 'require'],
 
     session: 'user_session',
 
+    updateLocation: true,
+
     // The ``controllers`` property should be declared as an ``Array`` of
     // ``Promenade.Controller`` class references. These references are used
     // to instantiate ``Controller`` instances that will govern the routing
@@ -54,6 +56,14 @@ define(['backbone', 'underscore', 'jquery', 'require'],
       this.initializes = this.setup().then(_.bind(function() {
         this.useView(view);
       }, this));
+    },
+
+    navigate: function(fragment) {
+      if (this.updateLocation === false) {
+        return Backbone.history.loadUrl(fragment);
+      }
+
+      return Backbone.Router.prototype.navigate.apply(this, arguments);
     },
 
     setup: function() {

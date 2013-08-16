@@ -67,6 +67,8 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
       // nested chain of ``Collection`` and ``Model`` instances.
       this.app = options.app;
 
+      this._needsSync = options.needsSync !== false;
+
       this._ensureReady(options);
       this._listenToApp();
     },
@@ -121,6 +123,21 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
       };
 
       return Backbone.sync.call(this, method, model, options);
+    },
+
+    fetch: function() {
+      this._ensureReady();
+      return Backbone.Model.prototype.fetch.apply(this, arguments);
+    },
+
+    save: function() {
+      this._ensureReady();
+      return Backbone.Model.prototype.save.apply(this, arguments);
+    },
+
+    destroy: function() {
+      this._ensureReady();
+      return Backbone.Model.prototype.destroy.apply(this, arguments);
     },
 
     // The default ``set`` behavior has been significantly expanded to support
@@ -270,10 +287,10 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
       return value;
     },
 
-    _ensureReady: function(options) {
+    _ensureReady: function() {
       var getsReady = new $.Deferred();
 
-      if (options.needsSync === false) {
+      if (this._needsSync === false) {
         getsReady.resolve();
       } else {
         this.once('sync', function() {

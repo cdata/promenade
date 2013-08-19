@@ -1,6 +1,7 @@
 module.exports = function(grunt) {
   'use strict';
   var project = 'promenade';
+  var banner = '/*! <%= pkg.name %> v<%= pkg.version %> <%= grunt.template.today("dd-mm-yyyy") %> */\n';
 
   grunt.loadNpmTasks('grunt-contrib-requirejs');
   grunt.loadNpmTasks('grunt-contrib-watch');
@@ -9,6 +10,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-docco2');
 
   grunt.initConfig({
+    pkg: grunt.file.readJSON('bower.json'),
     watch: {
       javascripts: {
         files: [
@@ -33,7 +35,10 @@ module.exports = function(grunt) {
           out: 'lib/' + project + '-standalone.js',
           optimize: 'none',
           useStrict: true,
-          exclude: ['templates']
+          exclude: ['templates'],
+          wrap: {
+            start: banner
+          }
         }
       },
       barebones: {
@@ -44,7 +49,10 @@ module.exports = function(grunt) {
           out: 'lib/' + project + '.js',
           optimize: 'none',
           useStrict: true,
-          exclude: ['backbone', 'underscore', 'jquery', 'templates']
+          exclude: ['backbone', 'underscore', 'jquery', 'templates'],
+          wrap: {
+            start: banner
+          }
         }
       },
       norequire: {
@@ -58,7 +66,7 @@ module.exports = function(grunt) {
           exclude: ['backbone', 'underscore', 'jquery', 'templates'],
           include: ['support/almond', 'support/shim'],
           wrap: {
-            start: '(function(global) {',
+            start: banner + '(function(global) {',
             end: 'global.Promenade = require(\'' + project + '\');\n})(this);'
           }
         }

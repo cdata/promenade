@@ -51,19 +51,99 @@ define(['promenade', 'promenade/region'],
       });
 
       describe('when a view is added', function() {
-        it('is appended to the $container element');
+        var someView;
+
+        beforeEach(function() {
+          someView = new Backbone.View();
+          for (var i = 0; i < 3; ++i) {
+            myView.fooRegion.add(new Backbone.View());
+          }
+          myView.render();
+        });
+
+        it('is appended to the $container element', function() {
+          var subviewCount = myView.fooRegion.subviews.length;
+
+          myView.fooRegion.add(someView);
+
+          expect(myView.fooRegion.subviews.length).to.be(subviewCount + 1);
+          expect(myView.fooRegion.$container.children().last().get(0)).to.be(someView.el);
+        });
       });
 
       describe('when a view is removed', function() {
-        it('is removed from the $container element');
+        var someView;
+
+        beforeEach(function() {
+          someView = new Backbone.View();
+
+          for (var i = 0; i < 3; ++i) {
+            myView.fooRegion.add(new Backbone.View());
+          }
+
+          myView.fooRegion.add(someView);
+
+          myView.render();
+        });
+
+        it('is removed from the $container element', function() {
+          var subviewCount = myView.fooRegion.subviews.length;
+
+          expect(someView.$el.parent().get(0)).to.be(myView.fooRegion.$container.get(0));
+
+          myView.fooRegion.remove(someView);
+
+          expect(myView.fooRegion.subviews.length).to.be(subviewCount - 1);
+          expect(someView.$el.parent().get(0)).to.not.be.ok();
+        });
       });
 
       describe('when a view is inserted', function() {
-        it('is added at the provided index');
+        var someView;
+
+        beforeEach(function() {
+          someView = new Backbone.View();
+
+          for (var i = 0; i < 3; ++i) {
+            myView.fooRegion.add(new Backbone.View());
+          }
+
+          myView.render();
+        });
+
+        it('is added at the provided index', function() {
+          var subviewCount = myView.fooRegion.subviews.length;
+
+          myView.fooRegion.insertAt(someView, 2);
+
+          expect(myView.fooRegion.subviews.length).to.be(subviewCount + 1);
+          expect(someView.$el.siblings().get(1)).to.be(
+              myView.fooRegion.$container.children().get(1));
+          expect(someView.$el.siblings().get(2)).to.be(
+              myView.fooRegion.$container.children().get(3));
+        });
       });
 
       describe('when a view is shown', function() {
-        it('replaces all current views in the region');
+        var someView;
+
+        beforeEach(function() {
+          someView = new Backbone.View();
+
+          for (var i = 0; i < 3; ++i) {
+            myView.fooRegion.add(new Backbone.View());
+          }
+
+          myView.render();
+        });
+
+        it('replaces all current views in the region', function() {
+          myView.fooRegion.show(someView);
+
+          expect(myView.fooRegion.subviews.length).to.be(1);
+          expect(myView.fooRegion.$container.children().length).to.be(1);
+          expect(myView.fooRegion.$container.children().get(0)).to.be(someView.el);
+        });
       });
 
       describe('after render', function() {

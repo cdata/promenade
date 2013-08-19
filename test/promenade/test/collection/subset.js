@@ -4,16 +4,24 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
   describe('Promenade.Collection.Subset', function() {
 
     it('is defined', function() {
-      console.log(Promenade.Collection, SubsetApi);
       expect(Promenade.Collection.Subset).to.be.ok();
       expect(SubsetApi).to.be.ok();
     });
 
     describe('when there is a collection', function() {
+      var Superset;
       var superset;
 
       beforeEach(function() {
-        superset = new Promenade.Collection();
+        Superset = Promenade.Collection.extend({
+          url: '/api/foo',
+          model: Backbone.Model.extend({
+            urlRoot: '/api/foo'
+          })
+        });
+
+        superset = new Superset();
+
         for (var i = 0; i < 10; ++i) {
           superset.add({ id: i });
         }
@@ -93,11 +101,50 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
           });
 
           describe('and an item is created on the subset', function() {
-            it('creates the item on the superset');
+            var server;
+
+            beforeEach(function() {
+              server = sinon.fakeServer.create();
+              server.respondWith('GET', '/api/foo',
+                                 [200, {}, '{"foo":"bar", "id":123}']);
+              sinon.spy(superset, 'create');
+            });
+
+            afterEach(function() {
+              server.restore();
+              superset.remove(123);
+              superset.create.restore();
+            });
+
+            it('creates the item on the superset', function() {
+              subset.create({ foo: "bar" });
+              server.respond();
+
+              expect(superset.get(123)).to.be.a(Backbone.Model);
+            });
           });
 
           describe('and fetch is called on the subset', function() {
-            it('calls fetch on the superset instead');
+            var server;
+
+            beforeEach(function() {
+              server = sinon.fakeServer.create();
+              server.respondWith('GET', '/api/foo',
+                                 [200, {}, '{"foo":"bar", "id":123}']);
+              sinon.spy(superset, 'create');
+            });
+
+            afterEach(function() {
+              server.restore();
+              superset.remove(123);
+              superset.create.restore();
+            });
+
+            it('calls fetch on the superset instead', function() {
+              subset.fetch();
+              server.respond();
+              expect(superset.get(123)).to.be.a(Backbone.Model);
+            });
           });
 
           describe('and items are added to the subset', function() {

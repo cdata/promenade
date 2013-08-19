@@ -36,7 +36,7 @@ define(['promenade/view'],
 
     // Upon render, we call ``resetItems`` to make sure that every contained
     // item gets rendered as well.
-    selfEvents: {
+    _selfEvents: {
       'render': 'resetItems'
     },
 
@@ -56,50 +56,6 @@ define(['promenade/view'],
       'sort': 'resetItems'
     },
 
-    collectionEvents: {},
-
-    // In support of ``collectionEvents``, the ``delegateEvents`` and
-    // ``undelegateEvents`` methods have been expanded.
-    delegateEvents: function() {
-      View.prototype.delegateEvents.apply(this, arguments);
-
-      if (this.hasCollection()) {
-        _.each(['_collectionEvents', 'collectionEvents'], function(eventMap) {
-          var collection;
-          var eventName;
-
-          collection = this.getCollection();
-
-          for (eventName in this[eventMap]) {
-            this.listenTo(collection, eventName,
-                          this[this[eventMap][eventName]]);
-          }
-        }, this);
-      }
-
-      return this;
-    },
-
-    undelegateEvents: function() {
-      View.prototype.undelegateEvents.apply(this, arguments);
-
-      if (this.hasCollection()) {
-        _.each(['_collectionEvents', 'collectionEvents'], function(eventMap) {
-          var collection;
-          var eventName;
-
-          collection = this.getCollection();
-
-          for (eventName in this[eventMap]) {
-            this.stopListening(collection, eventName,
-                               this[this[eventMap][eventName]]);
-          }
-        }, this);
-      }
-
-      return this;
-    },
-
     // The semantics of looking up a given ``model`` or ``collection`` in a
     // ``CollectionView`` are slightly different. In ``Promenade.View``, a
     // ``model`` can be represented by either a ``model`` or ``collection`` (in
@@ -113,16 +69,7 @@ define(['promenade/view'],
       return this.model;
     },
 
-    hasCollection: function() {
-      return !!this.getCollection();
-    },
-
-    getCollection: function() {
-      return this.collection;
-    },
-
     createItemView: function(model) {
-
       return new this.itemView({
         model: model
       }).render();
@@ -173,7 +120,7 @@ define(['promenade/view'],
         return;
       }
 
-      this.items[model.cid] = null;
+      delete this.items[model.cid];
 
       region.remove(view);
       view.undelegateEvents();

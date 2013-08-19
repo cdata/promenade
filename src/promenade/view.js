@@ -1,5 +1,6 @@
-define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region', 'promenade/collection/retainer'],
-       function($, Backbone, templates, _, Region, RetainerApi) {
+define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
+        'promenade/collection/retainer', 'promenade/event'],
+       function($, Backbone, templates, _, Region, RetainerApi, EventApi) {
   'use strict';
   // Promenade.View
   // --------------
@@ -32,60 +33,49 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region', 'pr
       this._ensureRenderQueue();
     },
 
+    supportedEventMaps: ['model', 'collection', 'self'],
 
     // ``delegateEvents`` is a built-in Backbone concept that handles creating
     // event handlers for DOM events. Promenade leverages this concept to
     // support managed event binding related to other event emitters.
     delegateEvents: function() {
-      var model;
-      var eventName;
-
       Backbone.View.prototype.delegateEvents.apply(this, arguments);
 
-      // If a ``model`` or ``collection`` is available, the ``View`` instance
-      // binds any event handlers defined in the ``modelEvents`` map to the
-      // appropriate entity.
-      if (this.hasModel()) {
-        model = this.getModel();
-
-        for (eventName in this.modelEvents) {
-          this.listenTo(model, eventName, this[this.modelEvents[eventName]]);
-        }
-      }
-
-      // If a ``selfEvents`` map is defined, handlers will be bound that respond
-      // to events dispatched by the ``View`` instance. This is useful in cases
-      // where, for instance, something needs to be done before or after a
-      // ``View`` is rendered.
-      for (eventName in this.selfEvents) {
-        this.listenTo(this, eventName, this[this.selfEvents[eventName]]);
-      }
+      this.delegateEventMaps();
 
       return this;
+    },
+
+    delegateModelEvents: function() {
+      var maps = ['_modelEvents', 'modelEvents'];
+      this._toggleEventMapsForTarget(maps, this.getModel(), 'listenTo');
+    },
+
+    delegateCollectionEvents: function() {
+      var maps = ['_collectionEvents', 'collectionEvents'];
+      this._toggleEventMapsForTarget(maps, this.getCollection(), 'listenTo');
     },
 
     // ``undelegateEvents`` undoes all of what ``delegateEvents`` does. It is
     // extended by the ``View`` to undo what the extended ``delegateEvents``
     // does in Promenade.
     undelegateEvents: function() {
-      var model;
-      var eventName;
-
       Backbone.View.prototype.undelegateEvents.apply(this, arguments);
 
-      if(this.hasModel()) {
-        model = this.getModel();
-
-        for (eventName in this.modelEvents) {
-          this.stopListening(model, eventName, this[this.modelEvents[eventName]]);
-        }
-      }
-
-      for (eventName in this.selfEvents) {
-        this.stopListening(this, eventName, this[this.selfEvents[eventName]]);
-      }
+      this.undelegateEventMaps();
 
       return this;
+    },
+
+    undelegateModelEvents: function() {
+      var maps = ['_modelEvents', 'modelEvents'];
+      this._toggleEventMapsForTarget(maps, this.getModel(), 'stopListening');
+    },
+
+    undelegateCollectionEvents: function() {
+      var maps = ['_collectionEvents', 'collectionEvents'];
+      this._toggleEventMapsForTarget(
+          maps, this.getCollection(), 'stopListening');
     },
 
     // The default ``render`` routine of Backbone is a no-op. In Promenade,
@@ -146,15 +136,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region', 'pr
     // The template can be declared on the class level.
     template: '',
 
-    // By default, a ``View`` will re-render on most manipulation-implying
-    // events dispatched by its ``model`` or ``collection``.
-    modelEvents: {
-      'reset': 'render',
-      'change': 'render'
-    },
-
-    // By default, no ``selfEvents`` are defined.
-    selfEvents: {},
 
     // A new ``detach`` method allows the ``View`` to be detached in a way that
     // is non-destructive for DOM event delegation.
@@ -189,7 +170,15 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region', 'pr
     },
 
     getModel: function() {
-      return this.model || this.collection;
+      return this.model || this.getCollection();
+    },
+
+    hasCollection: function() {
+      return !!this.getCollection();
+    },
+
+    getCollection: function() {
+      return this.collection;
     },
 
     // Region lookup has been formalized to support naming convention
@@ -208,11 +197,17 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region', 'pr
     // method for translating a ``model`` or ``collection`` into serialized
     // data consumable by the given template, if any.
     serializeModelData: function() {
+      var data;
+
       if (!this.hasModel()) {
-        return {};
+        data = {};
+      } else {
+        data = this.getModel().toJSON(_.result(this, 'serializationDepth'));
       }
 
-      return this.getModel().toJSON(_.result(this, 'serializationDepth'));
+      this.trigger('serialize', data);
+
+      return data;
     },
 
     getRenderQueue: function() {
@@ -224,6 +219,12 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region', 'pr
     pushRenderQueue: function(fn) {
       this._renderQueue = this.getRenderQueue().then(_.bind(fn, this));
       return this._renderQueue;
+    },
+
+    // By default, a ``View`` will re-render on most manipulation-implying
+    // events dispatched by its ``model`` or ``collection``.
+    _modelEvents: {
+      'change': 'render'
     },
 
     _ensureRegions: function() {
@@ -260,7 +261,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region', 'pr
     }
   });
 
-  _.extend(View.prototype, RetainerApi);
+  _.extend(View.prototype, RetainerApi, EventApi);
 
   return View;
 });

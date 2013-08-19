@@ -1,5 +1,7 @@
-define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/collection/retainer', 'promenade/collection/subset'],
-       function(Backbone, _, require, Model, RetainerApi, SubsetApi) {
+define(['backbone', 'underscore', 'require', 'promenade/model',
+        'promenade/collection/retainer', 'promenade/collection/subset',
+        'promenade/event'],
+       function(Backbone, _, require, Model, RetainerApi, SubsetApi, EventApi) {
   'use strict';
   // Promenade.Collection
   // --------------------
@@ -12,7 +14,11 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
     // ``Model``.
     model: Model,
 
-    appEvents: {},
+    supportedEventMaps: Model.prototype.supportedEventMaps,
+
+    delegateAppEvents: Model.prototype.delegateAppEvents,
+
+    undelegateAppEvents: Model.prototype.undelegateAppEvents,
 
     setDefaults: {},
 
@@ -55,8 +61,13 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
         this._synced = true;
       }, this);
 
+      this.delegateEventMaps();
+
       this._ensureReady(options);
-      this._listenToApp();
+    },
+
+    dispose: function() {
+      this.undelegateEventMaps();
     },
 
     _listenToApp: function() {
@@ -111,15 +122,17 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
 
       if (this.model && id) {
         if (_.isString(id) || _.isNumber(id)) {
-          id = { id: id };
+          model = {};
+          model[this.model.prototype.idAttribute] = id;
+        } else {
+          model = id;
         }
 
         // Here we create the model via the mechanism used by
         // ``Backbone.Collection``.
-        model = this._prepareModel(id, {
+        model = this._prepareModel(model, {
           needsSync: true
         });
-        id = model.id;
         this.add(model);
       }
 
@@ -211,7 +224,7 @@ define(['backbone', 'underscore', 'require', 'promenade/model', 'promenade/colle
     }
   });
 
-  _.extend(Collection.prototype, RetainerApi);
+  _.extend(Collection.prototype, RetainerApi, EventApi);
 
   Collection.Subset = SubsetApi;
   Collection.Retainer = RetainerApi;

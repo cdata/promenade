@@ -1,10 +1,3 @@
-# Features
-
- - Model#isReady
- - Super / Archetype
- - View#retain
- - Collection Empty View
-
 # Tests
 
  - RetainerApi
@@ -21,3 +14,4 @@
  - Propagates
  - Render Queue
  - SubsetApi toJSON / toArray
+ - Collection#isNew

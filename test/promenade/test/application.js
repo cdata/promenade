@@ -66,29 +66,64 @@ define(['promenade', 'promenade/application'],
 
       describe('and a view is declared', function() {
         describe('as a view instance', function() {
-          it('sets the current view to the new instance');
+          it('sets the current view to the new instance', function() {
+            var myView = new Backbone.View();
+
+            app.useView(myView);
+
+            expect(app.view).to.be(myView);
+          });
         });
 
         describe('as a view class', function() {
-          it('instantiates the class uses it as a view');
+          it('instantiates the class uses it as a view', function() {
+            sinon.spy(Backbone, 'View');
+
+            app.useView(Backbone.View);
+
+            expect(app.view).to.be.a(Backbone.View);
+            expect(Backbone.View.calledOnce).to.be(true);
+
+            Backbone.View.restore();
+          });
         });
 
         describe('as a string', function() {
-          it('resolves the class as an AMD module');
+          it('resolves the class as an AMD module', function() {
+            app.useView('promenade/view');
+
+            expect(app.view).to.be.a(Promenade.View);
+          });
         });
 
         describe('and a different view is set', function() {
-          it('changes the root application view to the new view');
+          it('changes the root application view to the new view', function() {
+            app.useView(Backbone.View);
+            app.useView(Promenade.View);
+
+            expect(app.view).to.be.a(Promenade.View);
+          });
         });
 
         describe('and the same view is set', function() {
-          it('does nothing');
+          it('does nothing', function() {
+            var MyView = Backbone.View.extend();
+            var view;
+
+            app.useView(MyView);
+            view = app.view;
+            app.useView(MyView);
+
+            expect(app.view).to.be(view);
+          });
         });
       });
     });
 
     describe('camelize', function() {
-      it('camelizes an underscore-delimited phrase');
+      it('camelizes an underscore-delimited phrase', function() {
+        expect(app.camelize('foo_bar_baz')).to.be('fooBarBaz');
+      });
     });
 
     describe('wth models', function() {

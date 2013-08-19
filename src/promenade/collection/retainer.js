@@ -12,13 +12,13 @@ define(['backbone', 'underscore'],
       var connection;
 
       if (!this._verifySubsetApi(collection)) {
-        return;
+        return collection;
       }
 
       this._connections = this._connections || {};
 
       if (this._connections[collection.cid]) {
-        return;
+        return collection;
       }
 
       connection = collection.connect();
@@ -30,6 +30,7 @@ define(['backbone', 'underscore'],
     releaseConnections: function() {
       for (var id in this._connections) {
         this._connections[id].release();
+        delete this._connections[id];
       }
     }
   };

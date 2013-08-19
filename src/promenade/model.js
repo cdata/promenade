@@ -1,5 +1,5 @@
-define(['backbone', 'require', 'promenade/collection/retainer'],
-       function(Backbone, require, RetainerApi) {
+define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event'],
+       function(Backbone, require, RetainerApi, EventApi) {
   'use strict';
   // Promenade.Model
   // ---------------
@@ -51,13 +51,12 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
     // parsing it.
     namespace: '',
 
-    appEvents: {},
+    supportedEventMaps: ['self', 'app'],
 
     propagates: {},
 
     initialize: function(attrs, options) {
       Backbone.Model.prototype.initialize.apply(this, arguments);
-
 
       options = options || {};
 
@@ -67,10 +66,11 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
       // nested chain of ``Collection`` and ``Model`` instances.
       this.app = options.app;
 
+      this.delegateEventMaps();
+
       this._needsSync = options.needsSync !== false;
 
       this._ensureReady(options);
-      this._listenToApp();
     },
 
     // The default behavior of parse is extended to support the added
@@ -225,6 +225,14 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
       return value;
     },
 
+    delegateAppEvents: function() {
+      this._toggleEventMapsForTarget(['appEvents'], this.app, 'listenTo');
+    },
+
+    undelegateAppEvents: function() {
+      this._toggleEventMapsForTarget(['appEvents'], this.app, 'stopListening');
+    },
+
     // This method returns true if the ``key`` and ``value`` attributes together
     // are determined to refer to an embedded reference.
     _isEmbeddedReference: function(key, value) {
@@ -305,19 +313,6 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
       this.isReady = getsReady.promise();
     },
 
-    _listenToApp: function() {
-      var appEvents;
-      var eventName;
-
-      if (this.app) {
-        appEvents = _.result(this, 'appEvents');
-
-        for (eventName in appEvents) {
-          this.listenTo(this.app, eventName, this[appEvents[eventName]]);
-        }
-      }
-    },
-
     // The ``_pluralizeString`` method returns the plural version of a provided
     // string, or the string itself if it is deemed to already be a pluralized
     // string. Presently, the implementation of this method is not robust. It
@@ -362,16 +357,27 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
       var data = Backbone.Model.prototype.toJSON.apply(this, arguments);
       var iterator = function(_value) {
         return (_value && _value.toJSON) ?
-            _value.toJSON(depth - 1) : _value;
+            _value.toJSON(Math.max(depth - 1, 0)) : _value;
       };
       var key;
       var value;
 
-      if (typeof depth === 'undefined') {
+      if (!_.isNumber(depth)) {
         depth = this.defaultSerializationDepth;
       }
 
       if (depth === 0) {
+        for (key in data) {
+          if (data[key] && (data[key] instanceof Backbone.Model ||
+                            data[key] instanceof Backbone.Collection)) {
+            if (_.isFunction(data[key].toReference)) {
+              data[key] = data[key].toReference();
+            } else {
+              data[key] = null;
+            }
+          }
+        }
+
         return data;
       }
 
@@ -383,7 +389,7 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
         }
 
         if (value && value.toJSON) {
-          data[key] = value.toJSON(depth - 1);
+          data[key] = value.toJSON(Math.max(depth - 1, 0));
         }
       }
 
@@ -397,7 +403,7 @@ define(['backbone', 'require', 'promenade/collection/retainer'],
     }
   });
 
-  _.extend(Model.prototype, RetainerApi);
+  _.extend(Model.prototype, RetainerApi, EventApi);
 
   return Model;
 });

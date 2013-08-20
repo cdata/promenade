@@ -5,9 +5,11 @@ define(['backbone', 'underscore'],
   // --------------------------------
 
   var RetainerApi = {
+
     _verifySubsetApi: function(collection) {
       return collection && _.isFunction(collection.connect) && collection.cid;
     },
+
     retains: function(collection) {
       var connection;
 
@@ -27,6 +29,7 @@ define(['backbone', 'underscore'],
 
       return collection;
     },
+
     releaseConnections: function() {
       for (var id in this._connections) {
         this._connections[id].release();

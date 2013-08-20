@@ -66,11 +66,16 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       // nested chain of ``Collection`` and ``Model`` instances.
       this.app = options.app;
 
-      this.delegateEventMaps();
-
       this._needsSync = options.needsSync !== false;
 
-      this._ensureReady(options);
+      this.delegateEventMaps();
+
+      this._ensureSynced();
+      this._ensureReady();
+    },
+
+    isSynced: function() {
+      return this._synced;
     },
 
     // The default behavior of parse is extended to support the added
@@ -225,12 +230,54 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return value;
     },
 
-    delegateAppEvents: function() {
-      this._toggleEventMapsForTarget(['appEvents'], this.app, 'listenTo');
+    toReference: function() {
+      return {
+        type: _.result(this, 'type'),
+        id: _.result(this, 'id')
+      };
     },
 
-    undelegateAppEvents: function() {
-      this._toggleEventMapsForTarget(['appEvents'], this.app, 'stopListening');
+    defaultSerializationDepth: 1,
+
+    // JSON serialization has been expanded to accomodate for the new value
+    // types that the ``Model`` supports. If any values resolved in the scope of
+    // the expanded method have their own ``toJSON`` method, those values are
+    // set to the result of that method. Additionally, a truthy value passed
+    // to ``toJSON`` will result in a shallow serialization where embedded
+    // references will not have their ``toJSON`` methods called (in order to
+    // avoid circular reference serialization traps).
+    toJSON: function(depth) {
+      var data = Backbone.Model.prototype.toJSON.apply(this, arguments);
+      var iterator = function(_value) {
+        return (_value && _value.toJSON) ?
+            _value.toJSON(depth) : _value;
+      };
+      var key;
+      var value;
+
+      if (!_.isNumber(depth)) {
+        depth = this.defaultSerializationDepth;
+      }
+
+      if (depth === 0) {
+        return this._trimReferences(data);
+      }
+
+      depth = Math.max(depth - 1, 0);
+
+      for (key in data) {
+        value = data[key];
+
+        if (_.isArray(value)) {
+          value = data[key] = _.map(value, iterator);
+        }
+
+        if (value && value.toJSON) {
+          data[key] = value.toJSON(depth);
+        }
+      }
+
+      return data;
     },
 
     // This method returns true if the ``key`` and ``value`` attributes together
@@ -295,6 +342,14 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return value;
     },
 
+    _ensureSynced: function() {
+      this._synced = false;
+
+      this.once('sync', function() {
+        this._synced = true;
+      }, this);
+    },
+
     _ensureReady: function() {
       var getsReady = new $.Deferred();
 
@@ -337,60 +392,24 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return string.substr(0, string.length - offset) + suffix;
     },
 
-    toReference: function() {
-      return {
-        type: _.result(this, 'type'),
-        id: _.result(this, 'id')
-      };
+    _castToReference: function(data) {
+      if (_.isArray(data)) {
+        return _.map(data, this._castToReference, this);
+      } else if (data instanceof Model) {
+        return data.toReference();
+      } else if (data instanceof Backbone.Model ||
+                 data instanceof Backbone.Collection) {
+        return null;
+      }
+
+      return data;
     },
 
-    defaultSerializationDepth: 1,
-
-    // JSON serialization has been expanded to accomodate for the new value
-    // types that the ``Model`` supports. If any values resolved in the scope of
-    // the expanded method have their own ``toJSON`` method, those values are
-    // set to the result of that method. Additionally, a truthy value passed
-    // to ``toJSON`` will result in a shallow serialization where embedded
-    // references will not have their ``toJSON`` methods called (in order to
-    // avoid circular reference serialization traps).
-    toJSON: function(depth) {
-      var data = Backbone.Model.prototype.toJSON.apply(this, arguments);
-      var iterator = function(_value) {
-        return (_value && _value.toJSON) ?
-            _value.toJSON(Math.max(depth - 1, 0)) : _value;
-      };
+    _trimReferences: function(data) {
       var key;
-      var value;
-
-      if (!_.isNumber(depth)) {
-        depth = this.defaultSerializationDepth;
-      }
-
-      if (depth === 0) {
-        for (key in data) {
-          if (data[key] && (data[key] instanceof Backbone.Model ||
-                            data[key] instanceof Backbone.Collection)) {
-            if (_.isFunction(data[key].toReference)) {
-              data[key] = data[key].toReference();
-            } else {
-              data[key] = null;
-            }
-          }
-        }
-
-        return data;
-      }
 
       for (key in data) {
-        value = data[key];
-
-        if (_.isArray(value)) {
-          value = data[key] = _.map(value, iterator);
-        }
-
-        if (value && value.toJSON) {
-          data[key] = value.toJSON(Math.max(depth - 1, 0));
-        }
+        data[key] = this._castToReference(data[key]);
       }
 
       return data;

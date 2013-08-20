@@ -35,6 +35,11 @@ define(['promenade', 'promenade/model'],
       expect(Model).to.be.ok();
     });
 
+    describe('before it is synced', function() {
+      it('reports that it is not yet synced', function() {
+        expect((new Model()).isSynced()).to.be(false);
+      });
+    });
 
     describe('when there is an associated Application instance', function() {
 

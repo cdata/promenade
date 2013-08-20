@@ -28,6 +28,17 @@ define(['promenade', 'promenade/view/collection'],
 
       describe('with a collection', function() {
 
+        describe('that is empty', function() {
+          beforeEach(function() {
+            myCollection.reset();
+            myCollectionView.render();
+          });
+
+          it('adds an empty class to the outlet node', function() {
+            expect(myCollectionView.outletRegion.$container.hasClass('empty')).to.be(true);
+          });
+        });
+
         describe('that has models in it', function() {
 
           describe('and rendered', function() {

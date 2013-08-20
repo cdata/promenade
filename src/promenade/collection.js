@@ -16,10 +16,6 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
 
     supportedEventMaps: Model.prototype.supportedEventMaps,
 
-    delegateAppEvents: Model.prototype.delegateAppEvents,
-
-    undelegateAppEvents: Model.prototype.undelegateAppEvents,
-
     setDefaults: {},
 
     propagates: {},
@@ -55,31 +51,31 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       this.app = options.app;
 
       this._needsSync = options.needsSync !== false;
-      this._synced = false;
-
-      this.once('sync', function() {
-        this._synced = true;
-      }, this);
 
       this.delegateEventMaps();
 
-      this._ensureReady(options);
+      this._ensureSynced();
+      this._ensureReady();
     },
 
     dispose: function() {
       this.undelegateEventMaps();
     },
 
-    _listenToApp: function() {
-      Model.prototype._listenToApp.call(this);
+    _ensureSynced: function() {
+      Model.prototype._ensureSynced.call(this);
     },
 
-    _ensureReady: function(options) {
-      Model.prototype._ensureReady.call(this, options);
+    _ensureReady: function() {
+      Model.prototype._ensureReady.call(this);
     },
 
     isNew: function() {
       return this._needsSync && !this._synced;
+    },
+
+    isSynced: function() {
+      return this._synced;
     },
 
     fetch: function() {

@@ -126,6 +126,50 @@ define(['backbone', 'promenade', 'promenade/view'],
       });
     });
 
+    describe('when there is another view', function() {
+      var myView;
+      var otherView;
+
+      beforeEach(function() {
+        myView = new MyView().render();
+        otherView = new View();
+      });
+
+      afterEach(function() {
+        otherView.off();
+      });
+
+      describe('and it is attached to the first view', function() {
+        it('triggers an attach event', function() {
+          var attachEventsTriggered = 0;
+
+          otherView.on('attach', function() {
+            attachEventsTriggered++;
+          });
+
+          myView.fooRegion.show(otherView);
+
+          expect(attachEventsTriggered).to.be(1);
+        });
+      });
+
+      describe('and it is detached from the first view', function() {
+        it('triggers a detach event', function() {
+          var detachEventsTriggered = 0;
+
+          otherView.on('detach', function() {
+            detachEventsTriggered++;
+          });
+
+          myView.fooRegion.show(otherView);
+
+          otherView.detach();
+
+          expect(detachEventsTriggered).to.be(1);
+        });
+      });
+    });
+
     describe('when dealing with an assigned model', function() {
 
       describe('calls to serializeModelData', function() {
@@ -139,7 +183,7 @@ define(['backbone', 'promenade', 'promenade/view'],
         it('properly serialize the model as a plain object', function() {
           var data = myView.serializeModelData();
 
-          expect(data).to.be.eql({ foo: 'foo', bar: 'bar' });
+          expect(data).to.be.eql({ foo: 'foo', bar: 'bar', model_is_new: true });
         });
 
         it('will fallback to a defined collection', function() {

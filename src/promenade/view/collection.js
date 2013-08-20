@@ -1,5 +1,5 @@
-define(['promenade/view'],
-       function(View) {
+define(['promenade/view', 'promenade/collection'],
+       function(View, Collection) {
   'use strict';
   // Promenade.CollectionView
   // ------------------------
@@ -75,6 +75,30 @@ define(['promenade/view'],
       }).render();
     },
 
+    // When a ``CollectionView`` needs to remove all items and re-add them
+    // one at a time, this method can be called.
+    resetItems: function() {
+      this._removeAllItems();
+
+      if (!this.hasCollection()) {
+        return;
+      }
+
+      this.getCollection().each(function(model) {
+        this._addItemByModel(model);
+      }, this);
+    },
+
+    render: function() {
+      View.prototype.render.apply(this, arguments);
+
+      if (this.hasCollection() && this.getCollection().length === 0) {
+        this.outletRegion.$container.addClass('empty');
+      }
+
+      return this;
+    },
+
     // Subviews in a ``CollectionView`` are tracked by the ``cid`` of the models
     // that represent them. This allows us to look up a ``View`` instance by
     // a model instance.
@@ -90,6 +114,8 @@ define(['promenade/view'],
       var region;
       var index;
       var view;
+
+      this.outletRegion.$container.removeClass('empty');
 
       // If we already have this ``model`` as a subview, we do nothing.
       if (this._containsItem(model)) {
@@ -140,20 +166,6 @@ define(['promenade/view'],
       }, this);
 
       this.items = {};
-    },
-
-    // When a ``CollectionView`` needs to remove all items and re-add them
-    // one at a time, this method can be called.
-    resetItems: function() {
-      this._removeAllItems();
-
-      if (!this.hasCollection()) {
-        return;
-      }
-
-      this.getCollection().each(function(model) {
-        this._addItemByModel(model);
-      }, this);
     }
   });
 

@@ -1,6 +1,8 @@
 define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
-        'promenade/collection/retainer', 'promenade/event'],
-       function($, Backbone, templates, _, Region, RetainerApi, EventApi) {
+        'promenade/collection/retainer', 'promenade/event', 'promenade/model',
+        'promenade/collection'],
+       function($, Backbone, templates, _, Region, RetainerApi, EventApi,
+                Model, Collection) {
   'use strict';
   // Promenade.View
   // --------------
@@ -46,16 +48,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       return this;
     },
 
-    delegateModelEvents: function() {
-      var maps = ['_modelEvents', 'modelEvents'];
-      this._toggleEventMapsForTarget(maps, this.getModel(), 'listenTo');
-    },
-
-    delegateCollectionEvents: function() {
-      var maps = ['_collectionEvents', 'collectionEvents'];
-      this._toggleEventMapsForTarget(maps, this.getCollection(), 'listenTo');
-    },
-
     // ``undelegateEvents`` undoes all of what ``delegateEvents`` does. It is
     // extended by the ``View`` to undo what the extended ``delegateEvents``
     // does in Promenade.
@@ -65,17 +57,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this.undelegateEventMaps();
 
       return this;
-    },
-
-    undelegateModelEvents: function() {
-      var maps = ['_modelEvents', 'modelEvents'];
-      this._toggleEventMapsForTarget(maps, this.getModel(), 'stopListening');
-    },
-
-    undelegateCollectionEvents: function() {
-      var maps = ['_collectionEvents', 'collectionEvents'];
-      this._toggleEventMapsForTarget(
-          maps, this.getCollection(), 'stopListening');
     },
 
     // The default ``render`` routine of Backbone is a no-op. In Promenade,
@@ -126,6 +107,8 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
         this[this.getRegionProperty(region)].empty();
       }
 
+      this.trigger('remove', this);
+
       this.undelegateEvents();
       this.releaseConnections();
 
@@ -140,8 +123,10 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     // A new ``detach`` method allows the ``View`` to be detached in a way that
     // is non-destructive for DOM event delegation.
     detach: function() {
-      this.undelegateEvents();
       this.$el.detach();
+
+      this.trigger('detach', this);
+
       return this;
     },
 
@@ -150,6 +135,9 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     attachTo: function($parent) {
       this.$el.appendTo($parent);
       this.delegateEvents();
+
+      this.trigger('attach', this);
+
       return this;
     },
 
@@ -198,11 +186,30 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     // data consumable by the given template, if any.
     serializeModelData: function() {
       var data;
+      var model;
+      var collection;
 
       if (!this.hasModel()) {
         data = {};
       } else {
-        data = this.getModel().toJSON(_.result(this, 'serializationDepth'));
+        model = this.getModel();
+        collection = this.getCollection();
+
+        data = model.toJSON(_.result(this, 'serializationDepth'));
+
+        if (model instanceof Backbone.Model) {
+          data.model_is_new = model.isNew();
+
+          if (model instanceof Model) {
+            data.model_is_synced = model.isSynced();
+          }
+        }
+
+        if (collection instanceof Collection) {
+          data.collection_is_new = collection.isNew();
+          data.collection_is_synced = collection.isSynced();
+          data.collection_is_empty = collection.length === 0;
+        }
       }
 
       this.trigger('serialize', data);

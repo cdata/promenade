@@ -8,6 +8,12 @@ define(['backbone', 'promenade', 'promenade/collection'],
       expect(Collection).to.be.ok();
     });
 
+    describe('before it is synced', function() {
+      it('reports that it is not yet synced', function() {
+        expect((new Collection()).isSynced()).to.be(false);
+      });
+    });
+
     describe('when it is associated with an app', function() {
       var MyApp;
       var MyCollection;

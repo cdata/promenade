@@ -65,13 +65,64 @@ define(['promenade', 'promenade/application'],
       });
 
       describe('and a view is declared', function() {
+
+
         describe('as a view instance', function() {
-          it('sets the current view to the new instance', function() {
-            var myView = new Backbone.View();
+          var myView;
+          var mySubview;
+
+          beforeEach(function() {
+            myView = new Promenade.View({
+              layout: {
+                self: ''
+              }
+            });
+            mySubview = new Promenade.View({
+              tagName: 'a'
+            });
+
+            mySubview.on('render', function() {
+              this.$el.attr('href', 'foo');
+              this.$el.addClass('route-link');
+            }, mySubview);
 
             app.useView(myView);
+            myView.selfRegion.show(mySubview.render());
 
+            sinon.spy(app.controllers[0], 'foobar');
+          });
+
+          afterEach(function() {
+            app.controllers[0].foobar.restore();
+            app.navigate('');
+          });
+
+          it('sets the current view to the new instance', function() {
+            app.useView(myView);
             expect(app.view).to.be(myView);
+          });
+
+          describe('and its subview dispathes a navigate event', function() {
+            it('bubbles the event to the application, which navigates', function() {
+              mySubview.trigger('navigate', 'foo', { trigger: true });
+              expect(app.controllers[0].foobar.callCount).to.be(1);
+            });
+          });
+
+          describe('and a route-link is clicked in DOM tree of the root', function() {
+            it('triggers navigation to the route defined by the href', function() {
+              mySubview.$el.click();
+              expect(app.controllers[0].foobar.callCount).to.be(1);
+            });
+
+            it('triggers navigation to the route defined by data-href', function() {
+              mySubview.$el.attr('href', '');
+              mySubview.$el.data('href', 'foo');
+
+              mySubview.$el.click();
+
+              expect(app.controllers[0].foobar.callCount).to.be(1);
+            });
           });
         });
 

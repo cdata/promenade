@@ -47,6 +47,10 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     add: function(views) {
       var PromenadeView = require('promenade/view');
 
+      if (!views) {
+        return;
+      }
+
       if (!_.isArray(views)) {
         views = [views];
       }
@@ -57,6 +61,8 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         } else {
           this.$container.append(view.el);
         }
+
+        this.listenTo(view, 'navigate', this._onSubviewNavigate);
       }, this);
 
       this.subviews = this.subviews.concat(views);
@@ -68,12 +74,18 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     remove: function(views) {
       var PromenadeView = require('promenade/view');
 
+      if (!views) {
+        return;
+      }
+
       if (!_.isArray(views)) {
         views = [views];
       }
 
       _.each(views, function(view) {
         view.remove();
+
+        this.stopListening(view, 'navigate', this._onSubviewNavigate);
       }, this);
 
       this.subviews = _.difference(this.subviews, views);
@@ -136,6 +148,10 @@ define(['promenade/object', 'promenade/view', 'underscore'],
           view.render();
         }
       }, this);
+    },
+
+    _onSubviewNavigate: function(href, options) {
+      this.superview.trigger('navigate', href, options);
     },
 
     // When a view is about to be rendered, it is useful to be able to

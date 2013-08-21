@@ -48,10 +48,8 @@ define(['backbone', 'underscore', 'jquery', 'require'],
       this.listenTo(this, 'before:sync', this._onBeforeSync);
       this.listenTo(this, 'sync', this._onSync);
 
-      // The ``$rootElement`` and ``rootElement`` properties are created on the
-      // ``Application`` instance during initialization.
-      this.$rootElement = $(this.root);
-      this.rootElement = this.$rootElement.get(0);
+      this.cid = _.uniqueId();
+      this._ensureRoot();
 
       this.initializes = this.setup().then(_.bind(function() {
         this.useView(view);
@@ -163,6 +161,7 @@ define(['backbone', 'underscore', 'jquery', 'require'],
         }
 
         // Otherwise the current ``view`` is removed.
+        this.stopListening(this.view, 'navigate', this.navigate);
         this.view.remove();
       }
 
@@ -178,10 +177,33 @@ define(['backbone', 'underscore', 'jquery', 'require'],
 
       // Finally, the new ``view`` instance is rendered and appended to the
       // ``rootElement`` of the ``Application`` instance.
+      this.listenTo(view, 'navigate', this.navigate);
       view.render();
       this.$rootElement.append(view.$el);
 
       this.view = view;
+    },
+
+    _ensureRoot: function() {
+      // The ``$rootElement`` and ``rootElement`` properties are created on the
+      // ``Application`` instance during initialization.
+      this.$rootElement = $(this.root);
+      this.rootElement = this.$rootElement.get(0);
+
+      this.$rootElement.on('click.promenade' + this.cid,
+                           '.route-link', _.bind(this._onClickRouteLink, this));
+    },
+
+    _onClickRouteLink: function(event) {
+      var $el = $(event.currentTarget);
+      var href = $el.attr('href') || $el.data('href');
+
+      if (href) {
+        this.navigate(href, { trigger: true });
+        return false;
+      }
+
+      throw new Error('A route link was clicked, but no HREF was found.');
     },
 
     // Upon initialization, and ``Application`` iterates through the list of

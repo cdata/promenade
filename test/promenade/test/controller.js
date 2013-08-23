@@ -98,6 +98,8 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           sinon.spy(app.controllers[0], 'receivesModelAndModel');
           sinon.spy(app.controllers[0], 'activate');
           sinon.spy(app.controllers[0], 'deactivate');
+          sinon.spy(app.controllers[1], 'activate');
+          sinon.spy(app.controllers[1], 'deactivate');
           app.lurCollection.reset([{
             id: '1'
           }]);
@@ -110,12 +112,14 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           app.controllers[0].receivesModelAndModel.restore();
           app.controllers[0].activate.restore();
           app.controllers[0].deactivate.restore();
+          app.controllers[1].activate.restore();
+          app.controllers[1].deactivate.restore();
           app.navigate('');
         });
 
         it('calls its own activate method when the route first matches', function() {
           expect(app.controllers[0].activate.callCount).to.be(0);
-          app.navigate('foo/bar', { trigger: true });  
+          app.navigate('foo/bar', { trigger: true });
           expect(app.controllers[0].activate.callCount).to.be(1);
           app.navigate('lur/1', { trigger: true });
           expect(app.controllers[0].activate.callCount).to.be(1);
@@ -123,10 +127,28 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
 
         it('calls its own deactivate method when the route no longer matches', function() {
           expect(app.controllers[0].deactivate.callCount).to.be(0);
-          app.navigate('foo/bar', { trigger: true });  
+          app.navigate('foo/bar', { trigger: true });
           expect(app.controllers[0].deactivate.callCount).to.be(0);
           app.navigate('grog', { trigger: true });
           expect(app.controllers[0].deactivate.callCount).to.be(1);
+        });
+
+        it('always deactivates old controllers before activating new ones', function() {
+          app.navigate('foo/bar', { trigger: true });
+          app.navigate('grog', { trigger: true });
+
+          expect(app.controllers[0].deactivate.calledBefore(
+              app.controllers[1].activate)).to.be(true);
+
+          app.controllers[0].activate.reset();
+          app.controllers[0].deactivate.reset();
+          app.controllers[1].activate.reset();
+          app.controllers[1].deactivate.reset();
+
+          app.navigate('foo/bar', { trigger: true });
+
+          expect(app.controllers[1].deactivate.calledBefore(
+              app.controllers[0].activate)).to.be(true);
         });
 
         describe('with an associated model', function() {

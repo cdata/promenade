@@ -75,8 +75,32 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
     },
 
     isSynced: function() {
-      return this._synced;
+      return this._synced || this._syncing;
     },
+
+    /*url: function() {
+      var collection = _.result(this, 'collection');
+      var namespace = (collection && _.result(collection, 'namespace')) ||
+          _.result(this, 'namespace');
+      var base;
+
+      if (!namespace) {
+        return Backbone.model.prototype.url.apply(this, arguments);
+      }
+
+      // Adapted from Backbone's default implementation:
+      base = _.result(this, 'urlRoot') || (function() {
+        throw new Error('A "urlRoot" property or function must be specified');
+      })();
+
+      base += (base.charAt(base.length - 1) === '/' ? '' : '/') + encodeURIComponent(namespace);
+
+      if (this.isNew()) {
+        return base;
+      }
+
+      return base + '/' + encodeURIComponent(this.id);
+    },*/
 
     // The default behavior of parse is extended to support the added
     // ``namespace`` property. If a namespace is defined, server data is
@@ -122,6 +146,9 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
           success.apply(options, arguments);
         }
 
+        this._syncing = false;
+        this._synced = true;
+
         if (app) {
           app.trigger('sync', model, resp, options);
         }
@@ -132,16 +159,19 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
 
     fetch: function() {
       this._ensureReady();
+      this._syncing = true;
       return Backbone.Model.prototype.fetch.apply(this, arguments);
     },
 
     save: function() {
       this._ensureReady();
+      this._syncing = true;
       return Backbone.Model.prototype.save.apply(this, arguments);
     },
 
     destroy: function() {
       this._ensureReady();
+      this._syncing = true;
       return Backbone.Model.prototype.destroy.apply(this, arguments);
     },
 
@@ -228,6 +258,22 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       }
 
       return value;
+    },
+
+    isSparse: function() {
+      var type = _.result(this, 'type');
+
+      for (var attr in this.attributes) {
+        if (attr !== 'id' && attr !== 'type') {
+          return false;
+        }
+      }
+
+      if (this.attributes.type && this.attributes.type !== type) {
+        return false;
+      }
+
+      return typeof this.attributes.id !== undefined;
     },
 
     toReference: function() {
@@ -335,7 +381,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
         collection = app.getCollectionForType(value.type);
 
         if (collection && collection instanceof Backbone.Collection) {
-          return collection.get(value);
+          return collection.get(value, { fetch: false });
         }
       }
 
@@ -344,23 +390,17 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
 
     _ensureSynced: function() {
       this._synced = false;
-
-      this.once('sync', function() {
-        this._synced = true;
-      }, this);
+      this._syncing = false;
     },
 
     _ensureReady: function() {
       var getsReady = new $.Deferred();
 
-      if (this._needsSync === false) {
+      if (this._needsSync === false ||
+          (_.isFunction(this, 'isSparse') && !this.isSparse())) {
         getsReady.resolve();
       } else {
-        this.once('sync', function() {
-          getsReady.resolve();
-        });
-
-        this.once('update', function() {
+        this.once('sync update change', function() {
           getsReady.resolve();
         });
       }

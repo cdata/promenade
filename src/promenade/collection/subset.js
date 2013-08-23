@@ -75,6 +75,7 @@ define(['backbone', 'underscore'],
         this.listenTo(this.superset, 'remove', this._onSupersetRemove);
         this.listenTo(this.superset, 'reset', this._onSupersetReset);
         this.listenTo(this.superset, 'change', this._onSupersetChange);
+        this.listenTo(this.superset, 'sort', this._onSupersetSort);
 
         this.refresh();
 
@@ -147,6 +148,14 @@ define(['backbone', 'underscore'],
       this._prototype.add.call(this, model, {
         fromSuperset: true
       });
+    },
+
+    _onSupersetSort: function(superset, options) {
+      if (options && options.sortSubsets === false) {
+        return;
+      }
+
+      this.sort(options);
     },
 
     set: function(models, options) {

@@ -53,7 +53,7 @@ define(['promenade/view', 'promenade/collection'],
       'add': '_addItemByModel',
       'remove': '_removeItemByModel',
       'reset': '_removeAllItems',
-      'sort': 'resetItems'
+      'sort': '_sortItems'
     },
 
     // The semantics of looking up a given ``model`` or ``collection`` in a
@@ -166,6 +166,18 @@ define(['promenade/view', 'promenade/collection'],
       }, this);
 
       this.items = {};
+    },
+
+    _sortItems: function() {
+      var region = this.getRegion('outlet');
+
+      _.each(this.items, function(view) {
+        region.detach(view);
+      }, this);
+
+      this.getCollection().each(function(model) {
+        region.add(this.items[model.cid]);
+      }, this);
     }
   });
 

@@ -70,21 +70,19 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       Model.prototype._ensureReady.call(this);
     },
 
-    isNew: function() {
-      return this._needsSync && !this._synced;
-    },
-
     isSynced: function() {
-      return this._synced;
+      return Model.prototype.isSynced.apply(this, arguments);
     },
 
     fetch: function() {
       this._ensureReady();
+      this._syncing = true;
       return Backbone.Collection.prototype.fetch.apply(this, arguments);
     },
 
     create: function() {
       this._ensureReady();
+      this._syncing = true;
       return Backbone.Collection.prototype.create.apply(this, arguments);
     },
 
@@ -92,15 +90,22 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
     // method. When ``get`` is used to find a model by Number or String ``id``,
     // and the model does not already exist in the collection, the model is
     // created, added and fetched before being returned by the method.
-    get: function(id) {
+    get: function(id, options) {
       var model;
 
+      options = options || {
+        fetch: true
+      };
+
+      if (this._performingSetOperation) {
+        options.fetch = false;
+      }
       // If ``get`` receives an ``Array`` of ``id`` values as the first
       // parameter, then ``Collection`` will return an ``Array`` containing the
       // result of a lookup on each of those ``id`` values.
       if (_.isArray(id)) {
         return _.map(id, function(_id) {
-          return this.get(_id);
+          return this.get(_id, options);
         }, this);
       }
 
@@ -109,32 +114,33 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       // If the model is found by Backbone's default ``get`` implementation,
       // we return the found model instance.
       if (model) {
-        return model;
-      }
-
-      if (_.isObject(id) && id instanceof Backbone.Model) {
-        return;
-      }
-
-      if (this.model && id) {
-        if (_.isString(id) || _.isNumber(id)) {
-          model = {};
-          model[this.model.prototype.idAttribute] = id;
-        } else {
-          model = id;
+        if (!(model instanceof Model)) {
+          return model;
+        }
+      } else {
+        if (_.isObject(id) && id instanceof Backbone.Model) {
+          return;
         }
 
-        // Here we create the model via the mechanism used by
-        // ``Backbone.Collection``.
-        model = this._prepareModel(model, {
-          needsSync: true
-        });
-        this.add(model);
+        if (this.model && id) {
+          if (_.isString(id) || _.isNumber(id)) {
+            model = {};
+            model[this.model.prototype.idAttribute] = id;
+          } else {
+            model = id;
+          }
+
+          // Here we create the model via the mechanism used by
+          // ``Backbone.Collection``.
+          model = this._prepareModel(model, {
+            needsSync: true
+          });
+
+          this.add(model);
+        }
       }
 
-      // If there is no ``url`` defined for this collection, we
-      // can not automatically create and fetch the model.
-      if (this.url && model && model.url) {
+      if (options.fetch && this._isCandidateForFetch(model)) {
 
         // We pre-emptively fetch the model from the server.
         model.fetch();
@@ -143,13 +149,27 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       return model;
     },
 
+    _isCandidateForFetch: function(model) {
+      return this.url && model && model.url &&
+          (!(model instanceof Model) ||
+           (model.isSparse() && !model.isSynced()));
+    },
+
     set: function(models, options) {
+      var result;
+
       options = _.defaults(options || {}, _.extend({
         merge: true,
         remove: false
       }, _.result(this, 'setDefaults')));
 
-      return Backbone.Collection.prototype.set.call(this, models, options);
+      this._performingSetOperation = true;
+
+      result = Backbone.Collection.prototype.set.call(this, models, options);
+
+      this._performingSetOperation = false;
+
+      return result;
     },
 
     // The default behavior of parse is extended to support the added

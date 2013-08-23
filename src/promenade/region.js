@@ -91,6 +91,30 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       this.subviews = _.difference(this.subviews, views);
     },
 
+    detach: function(views) {
+      var PromenadeView = require('promenade/view');
+
+      if (!views) {
+        return;
+      }
+
+      if (!_.isArray(views)) {
+        views = [views];
+      }
+
+      _.each(views, function(view) {
+        if (view instanceof PromenadeView) {
+          view.detach();
+        } else {
+          view.$el.detach();
+        }
+
+        this.stopListening(view, 'navigate', this._onSubviewNavigate);
+      }, this);
+
+      this.subviews = _.difference(this.subviews, views);
+    },
+
     empty: function() {
       this.remove(this.subviews);
     },

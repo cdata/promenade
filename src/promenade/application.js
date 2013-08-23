@@ -56,12 +56,18 @@ define(['backbone', 'underscore', 'jquery', 'require'],
       }, this));
     },
 
-    navigate: function(fragment) {
+    navigate: function(fragment, options) {
+      fragment = this.parseFragment(fragment);
+
       if (this.updateLocation === false) {
         return Backbone.history.loadUrl(fragment);
       }
 
-      return Backbone.Router.prototype.navigate.apply(this, arguments);
+      return Backbone.Router.prototype.navigate.call(this, fragment, options);
+    },
+
+    parseFragment: function(fragment) {
+      return _.isString(fragment) ? fragment.replace(/^\//, '') : fragment;
     },
 
     setup: function() {
@@ -169,7 +175,8 @@ define(['backbone', 'underscore', 'jquery', 'require'],
       // or by setting a provided instance.
       if (_.isFunction(View)) {
         view = new View({
-          model: this.getSession()
+          model: this.getSession(),
+          app: this
         });
       } else {
         view = View;
@@ -307,7 +314,14 @@ define(['backbone', 'underscore', 'jquery', 'require'],
         // it can support. These ``routes`` are each mapped to a ``route`` in
         // ``Application``, which is a ``Backbone.Router`` derivative.
         _.each(controller.routes, function(handler, route) {
-          this.route(route, route, handler);
+          this.route(route, route, _.bind(function() {
+            _.each(this.controllers, function(_controller, index) {
+              if (_controller !== controller && !_controller.handlesRoute(route)) {
+                _controller.setInactive();
+              }
+            });
+            handler.apply(controller, arguments);
+          }, this));
         }, this);
 
         return controller;

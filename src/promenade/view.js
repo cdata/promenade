@@ -206,7 +206,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
         }
 
         if (collection instanceof Collection) {
-          data.collection_is_new = collection.isNew();
           data.collection_is_synced = collection.isSynced();
           data.collection_is_empty = collection.length === 0;
         }

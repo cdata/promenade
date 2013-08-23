@@ -38,17 +38,19 @@ define(['backbone', 'underscore'],
 
     _toggleEventMaps: function(enabled) {
       var types = this._getSupportedEventMaps();
+      var original;
       var key;
       var target;
       var maps;
 
       for (key in types) {
+        original = key;
         key = key[0].toUpperCase() + key.slice(1);
 
         target = 'get' + key;
         target = _.result(this, target);
 
-        key = key.toLowerCase();
+        key = original;
 
         if (!target) {
           target = key;
@@ -99,7 +101,7 @@ define(['backbone', 'underscore'],
       supportedMap = {};
 
       for (index = 0; index < supportedList.length; ++index) {
-        supportedMap[supportedList[index].toLowerCase()] = true;
+        supportedMap[supportedList[index]] = true;
       }
 
       this._supportedEventMaps = supportedMap;
@@ -151,7 +153,7 @@ define(['backbone', 'underscore'],
       tokens = tokens.slice(1, 3);
 
       if (tokens[0] in supportedEventMaps) {
-        tokens[0] = tokens[0].toLowerCase() + 'Events';
+        tokens[0] = tokens[0] + 'Events';
         return tokens;
       }
 

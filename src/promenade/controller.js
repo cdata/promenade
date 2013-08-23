@@ -27,8 +27,6 @@ define(['backbone', 'underscore', 'promenade/object'],
       }, this);
 
       this._state = Controller.state.INACTIVE;
-
-      this.listenTo(this.app, 'route', this._onNavigationEvent);
     },
 
     // When the state changes to ``active``, this method is called.
@@ -42,7 +40,7 @@ define(['backbone', 'underscore', 'promenade/object'],
     // ``inactive``. In addition to calling the built-in ``activate`` and
     // ``deactivate`` handlers, they dispatch an ``activate`` and ``deactivate``
     // event.
-    _activate: function() {
+    setActive: function() {
       if (this._state === Controller.state.INACTIVE) {
         this._state = Controller.state.ACTIVE;
         this.activate();
@@ -50,7 +48,7 @@ define(['backbone', 'underscore', 'promenade/object'],
       }
     },
 
-    _deactivate: function() {
+    setInactive: function() {
       if (this._state === Controller.state.ACTIVE) {
         this._state = Controller.state.INACTIVE;
         this.deactivate();
@@ -60,14 +58,14 @@ define(['backbone', 'underscore', 'promenade/object'],
 
     // Navigation events are observed to determine when it is appropriate to
     // transition the state of the ``Controller``.
-    _onNavigationEvent: function(route) {
+    handlesRoute: function(route) {
       for (var index = 0; index < this._routeMatchers.length; ++index) {
         if (this._routeMatchers[index].test(route)) {
-          return;
+          return true;
         }
       }
 
-      this._deactivate();
+      return false;
     },
 
     // This method defaults to a no-op. Override it to define the routes that
@@ -119,7 +117,7 @@ define(['backbone', 'underscore', 'promenade/object'],
             return arg;
           });
 
-          this._activate();
+          this.setActive();
           this[handler].apply(this, args);
         }, this);
       }

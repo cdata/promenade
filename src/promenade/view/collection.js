@@ -36,9 +36,9 @@ define(['promenade/view', 'promenade/collection'],
 
     // Upon render, we call ``resetItems`` to make sure that every contained
     // item gets rendered as well.
-    _selfEvents: {
+    _selfEvents: _.extend(View.prototype._selfEvents, {
       'render': 'resetItems'
-    },
+    }),
 
     // A new mapping of ``collectionEvents`` can be declared. This allows a
     // distinction between the events bound to a ``model`` instance and a

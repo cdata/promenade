@@ -131,7 +131,7 @@ define(['backbone', 'promenade', 'promenade/view'],
       var otherView;
 
       beforeEach(function() {
-        myView = new MyView().render();
+        myView = new MyView({ model: myModel }).render();
         otherView = new View();
       });
 
@@ -166,6 +166,50 @@ define(['backbone', 'promenade', 'promenade/view'],
           otherView.detach();
 
           expect(detachEventsTriggered).to.be(1);
+        });
+      });
+
+      describe('and it is attached to an arbitrary number of parents', function() {
+        var someIntermediaryView;
+
+        beforeEach(function() {
+          someIntermediaryView = new MyView({ model: myModel }).render();
+          myView.fooRegion.show(someIntermediaryView);
+          someIntermediaryView.fooRegion.show(otherView);
+        });
+
+        afterEach(function() {
+          otherView.off();
+          myView.detach();
+        });
+
+        describe('and a parent is attached to the DOM', function() {
+          it('triggers a dom:attach event', function() {
+            var domAttachEventsTriggered = 0;
+
+            otherView.on('dom:attach', function() {
+              domAttachEventsTriggered++;
+            });
+
+            myView.attachTo(document.body);
+
+            expect(domAttachEventsTriggered).to.be(1);
+          });
+        });
+
+        describe('and a parent is detached from the DOM', function() {
+          it('triggers a dom:detach event', function() {
+            var domDetachEventsTriggered = 0;
+
+            otherView.on('dom:detach', function() {
+              domDetachEventsTriggered++;
+            });
+
+            myView.attachTo(document.body);
+            myView.detach();
+
+            expect(domDetachEventsTriggered).to.be(1);
+          });
         });
       });
     });

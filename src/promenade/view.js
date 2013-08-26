@@ -109,6 +109,8 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       this.trigger('remove', this);
 
+      this._bubbleDomDetach();
+
       this.undelegateEvents();
       this.releaseConnections();
 
@@ -123,9 +125,17 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     // A new ``detach`` method allows the ``View`` to be detached in a way that
     // is non-destructive for DOM event delegation.
     detach: function() {
+      var region;
+
+      if (!this.$el.parent().length) {
+        return this;
+      }
+
       this.$el.detach();
 
       this.trigger('detach', this);
+
+      this._bubbleDomDetach();
 
       return this;
     },
@@ -133,10 +143,16 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     // The ``attachTo`` method allows easy re-attachment without also expecting
     // the user to subsequently call ``delegateEvents``.
     attachTo: function($parent) {
+      var region;
+
+      this.detach();
+
       this.$el.appendTo($parent);
       this.delegateEvents();
 
       this.trigger('attach', this);
+
+      this._bubbleDomAttach();
 
       return this;
     },
@@ -231,6 +247,25 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     // events dispatched by its ``model`` or ``collection``.
     _modelEvents: {
       'change': 'render'
+    },
+
+    _selfEvents: {
+      'dom:attach': '_bubbleDomAttach',
+      'dom:detach': '_bubbleDomDetach'
+    },
+
+    _bubbleDomAttach: function(view) {
+      for (var region in this.layout) {
+        _.invoke(this.getRegion(region).subviews,
+                 'trigger', 'dom:attach', view || this);
+      }
+    },
+
+    _bubbleDomDetach: function(view) {
+      for (var region in this.layout) {
+        _.invoke(this.getRegion(region).subviews,
+                 'trigger', 'dom:detach', view || this);
+      }
     },
 
     _ensureRegions: function() {

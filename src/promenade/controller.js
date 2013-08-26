@@ -29,6 +29,10 @@ define(['backbone', 'underscore', 'promenade/object'],
       this._state = Controller.state.INACTIVE;
     },
 
+    isActive: function() {
+      return this._state === Controller.state.ACTIVE;
+    },
+
     // When the state changes to ``active``, this method is called.
     activate: function() {},
 

@@ -18,12 +18,13 @@ define(['backbone', 'promenade', 'promenade/event'],
           events: {
             'self foo': 'onSelfFoo',
             'self bar:baz': 'onSelfBar',
-            'other foo': 'onOtherFoo',
+            'other foo': ['onOtherFoo', 'onOtherFoo2'],
             'foo': 'onFoo'
           },
           onSelfFoo: function() {},
           onSelfBar: function() {},
           onOtherFoo: function() {},
+          onOtherFoo2: function() {},
           initialize: function() {
             this.other = new Promenade.Object();
             this.delegateEventMaps();
@@ -34,11 +35,13 @@ define(['backbone', 'promenade', 'promenade/event'],
 
         sinon.spy(eventObject, 'onSelfFoo');
         sinon.spy(eventObject, 'onOtherFoo');
+        sinon.spy(eventObject, 'onOtherFoo2');
       });
 
       afterEach(function() {
         eventObject.onSelfFoo.restore();
         eventObject.onOtherFoo.restore();
+        eventObject.onOtherFoo2.restore();
         eventObject.undelegateEventMaps();
       });
 
@@ -64,7 +67,7 @@ define(['backbone', 'promenade', 'promenade/event'],
         it('organizes event handler declarations into their associated maps', function() {
           expect(eventObject.selfEvents.foo).to.be('onSelfFoo');
           expect(eventObject.selfEvents['bar:baz']).to.be('onSelfBar');
-          expect(eventObject.otherEvents.foo).to.be('onOtherFoo');
+          expect(eventObject.otherEvents.foo).to.be.eql(['onOtherFoo', 'onOtherFoo2']);
         });
 
         it('keeps "unsupported" events in the default events map', function() {
@@ -81,6 +84,21 @@ define(['backbone', 'promenade', 'promenade/event'],
           it('does not delegate handlers multiple times', function() {
             eventObject.trigger('foo');
             expect(eventObject.onSelfFoo.callCount).to.be(1);
+          });
+
+          describe('and then undelegated', function() {
+            beforeEach(function() {
+              eventObject.undelegateEventMaps();
+            });
+
+            it('removes all delegated handlers', function() {
+              eventObject.trigger('foo');
+              eventObject.other.trigger('foo');
+
+              expect(eventObject.onSelfFoo.callCount).to.be(0);
+              expect(eventObject.onOtherFoo.callCount).to.be(0);
+              expect(eventObject.onOtherFoo2.callCount).to.be(0);
+            });
           });
         });
 
@@ -102,6 +120,17 @@ define(['backbone', 'promenade', 'promenade/event'],
 
             it('calls the delegated handler appropriately', function() {
               expect(eventObject.onOtherFoo.callCount).to.be(1);
+            });
+
+            describe('that has multiple handlers registered', function() {
+              it('calls them both', function() {
+                expect(eventObject.onOtherFoo.callCount).to.be(1);
+                expect(eventObject.onOtherFoo2.callCount).to.be(1);
+              });
+
+              it('calls them in order', function() {
+                expect(eventObject.onOtherFoo.calledBefore(eventObject.onOtherFoo2)).to.be(true);
+              });
             });
           });
         });

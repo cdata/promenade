@@ -70,6 +70,8 @@ define(['backbone', 'underscore'],
       var eventName;
       var index;
       var map;
+      var handler;
+      var _index;
 
       if (!maps || !target || !operation) {
         return;
@@ -83,7 +85,15 @@ define(['backbone', 'underscore'],
         map = _.result(this, maps[index]);
 
         for (eventName in map) {
-          this[operation](target, eventName, this[map[eventName]]);
+          handler = map[eventName];
+
+          if (_.isArray(handler)) {
+            for (_index = 0; _index < handler.length; ++_index) {
+              this[operation](target, eventName, this[handler[_index]]);
+            }
+          } else if (_.isString(handler)) {
+            this[operation](target, eventName, this[handler]);
+          }
         }
       }
     },

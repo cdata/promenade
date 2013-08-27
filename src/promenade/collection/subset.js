@@ -11,6 +11,7 @@ define(['backbone', 'underscore'],
 
       this.superset = options.superset;
       this.iterator = options.iterator;
+      this.alwaysRefresh = options.alwaysRefresh === true;
 
       this._connection = null;
       this._connectionStack = [];
@@ -58,6 +59,20 @@ define(['backbone', 'underscore'],
     },
 
     refresh: function() {
+      var index = 0;
+      var model;
+
+      while (index < this.length) {
+        model = this.at(index);
+
+        if (!this.iterator(model, index)) {
+          this.remove(model);
+          continue;
+        }
+
+        ++index;
+      }
+
       this._prototype.add.call(this, this.superset.filter(this.iterator), {
         fromSuperset: true
       });
@@ -142,7 +157,7 @@ define(['backbone', 'underscore'],
 
     _onSupersetChange: function(model) {
       if (!this.iterator(model)) {
-        return;
+        return this._onSupersetRemove(model);
       }
 
       this._prototype.add.call(this, model, {

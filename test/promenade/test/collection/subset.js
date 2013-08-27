@@ -29,10 +29,12 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
 
       describe('and a subset is requested', function() {
         var subset;
+        var threshold;
 
         beforeEach(function() {
+          threshold = 4;
           subset = superset.subset(function(model) {
-            return window.parseInt(model.id, 10) > 4;
+            return window.parseInt(model.id, 10) > threshold;
           });
         });
 
@@ -67,6 +69,34 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
 
           it('yields a connection reference', function() {
             expect(connection).to.be.ok();
+          });
+
+          describe('and a model is changed to no longer match the filter', function() {
+
+            it('removes the model from the subset', function() {
+              var modelFive = superset.get(5);
+
+              expect(subset.get(modelFive)).to.be(modelFive);
+
+              modelFive.set('id', -100);
+
+              expect(subset.get(modelFive)).to.not.be.ok();
+            });
+          });
+
+          describe('and the filter conditions change to no longer match some models', function() {
+            beforeEach(function() {
+              threshold = 5;
+            });
+            describe('and refresh is called', function() {
+
+              it('removes the non-matching models from the subset', function() {
+                var modelFive = subset.get(5);
+                expect(subset.get(modelFive)).to.be.ok();
+                subset.refresh();
+                expect(subset.get(modelFive)).to.not.be.ok();
+              });
+            });
           });
 
           describe('and a connection is released multiple times', function() {

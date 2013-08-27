@@ -400,7 +400,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
           (_.isFunction(this, 'isSparse') && !this.isSparse())) {
         getsReady.resolve();
       } else {
-        this.once('sync update change', function() {
+        this.once('sync update', function() {
           getsReady.resolve();
         });
       }

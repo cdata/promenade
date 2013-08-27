@@ -88,13 +88,35 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
             beforeEach(function() {
               threshold = 5;
             });
-            describe('and refresh is called', function() {
 
+            describe('and refresh is called', function() {
               it('removes the non-matching models from the subset', function() {
                 var modelFive = subset.get(5);
                 expect(subset.get(modelFive)).to.be.ok();
                 subset.refresh();
                 expect(subset.get(modelFive)).to.not.be.ok();
+              });
+
+              it('does not damage the superset', function() {
+                var supersetJson = superset.toJSON();
+                subset.refresh();
+                expect(superset.toJSON()).to.be.eql(supersetJson);
+              });
+            });
+
+            describe('and the subset is set to always refresh', function() {
+              beforeEach(function() {
+                subset.alwaysRefresh = true;
+              });
+
+              describe('and something changes', function() {
+                it('automatically refilters the whole subset', function() {
+                  var modelFive = subset.get(5);
+                  expect(subset.get(modelFive)).to.be.ok();
+                  modelFive.set('one', 1);
+                  expect(subset.length).to.be(4);
+                  expect(subset.get(modelFive)).to.not.be.ok();
+                });
               });
             });
           });

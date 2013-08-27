@@ -66,7 +66,9 @@ define(['backbone', 'underscore'],
         model = this.at(index);
 
         if (!this.iterator(model, index)) {
-          this.remove(model);
+          this._prototype.remove.call(this, model, {
+            operateOnSubset: true
+          });
           continue;
         }
 
@@ -74,7 +76,7 @@ define(['backbone', 'underscore'],
       }
 
       this._prototype.add.call(this, this.superset.filter(this.iterator), {
-        fromSuperset: true
+        operateOnSubset: true
       });
     },
 
@@ -134,34 +136,50 @@ define(['backbone', 'underscore'],
     },
 
     _onSupersetAdd: function(model) {
+      if (this.alwaysRefresh) {
+        return this.refresh();
+      }
+
       if (!this.iterator(model)) {
         return;
       }
 
       this._prototype.add.call(this, model, {
-        fromSuperset: true
+        operateOnSubset: true
       });
     },
 
     _onSupersetRemove: function(model) {
+      if (this.alwaysRefresh) {
+        return this.refresh();
+      }
+
       this._prototype.remove.call(this, model, {
-        fromSuperset: true
+        operateOnSubset: true
       });
     },
 
     _onSupersetReset: function() {
+      if (this.alwaysRefresh) {
+        return this.refresh();
+      }
+
       this._prototype.reset.call(this, null, {
-        fromSuperset: true
+        operateOnSubset: true
       });
     },
 
     _onSupersetChange: function(model) {
+      if (this.alwaysRefresh) {
+        return this.refresh();
+      }
+
       if (!this.iterator(model)) {
         return this._onSupersetRemove(model);
       }
 
       this._prototype.add.call(this, model, {
-        fromSuperset: true
+        operateOnSubset: true
       });
     },
 
@@ -174,7 +192,7 @@ define(['backbone', 'underscore'],
     },
 
     set: function(models, options) {
-      if (options && options.fromSuperset) {
+      if (options && options.operateOnSubset) {
         return this._prototype.set.apply(this, arguments);
       }
 

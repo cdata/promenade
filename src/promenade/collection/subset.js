@@ -1,7 +1,7 @@
 define(['backbone', 'underscore'],
        function(Backbone, _) {
   'use strict';
-  // Promenade.Container.Subset API
+  // Promenade.Collection.Subset API
   // ------------------------------
 
   var SubsetApi = {

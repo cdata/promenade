@@ -78,9 +78,9 @@ define(['backbone', 'underscore', 'promenade/object'],
     //   // ...
     //   defineRoutes: function() {
     //     this.handle('foo', 'fooHandler');
-    //     this.resource('bar', 'barHandler');
+    //     this.show('bar', 'barHandler');
     //     this.handle('baz', function() {
-    //       this.resource('vim', 'bazVimHandler');
+    //       this.show('vim', 'bazVimHandler');
     //     });
     //   }
     //   // ...
@@ -111,18 +111,25 @@ define(['backbone', 'underscore', 'promenade/object'],
       if (handler) {
         this.routes[fragment] = _.bind(function() {
           var args = Array.prototype.slice.call(arguments);
+          var params;
           // All arguments to the ``route`` handler (typically in the form of
           // ``String`` values) are mapped to resources by using 'generator'
           // functions defined by the definition context.
-          args = _.map(args, function(arg, index) {
-            if (typeof arg !== 'undefined' && generators[index]) {
-              return generators[index](arg);
+          params = _.map(generators, function(generator) {
+            if (generator.consumesArgument) {
+              return generator(args.shift());
             }
-            return arg;
-          });
+
+            return generator();
+          }).concat(args);
 
           this.setActive();
-          this[handler].apply(this, args);
+
+          $.when.apply($, params).then(_.bind(function() {
+            if (this.isActive()) {
+              this[handler].apply(this, arguments);
+            }
+          }, this));
         }, this);
       }
 
@@ -149,29 +156,58 @@ define(['backbone', 'underscore', 'promenade/object'],
           state.fragment = root + state.fragment;
           this._handle(state);
         }),
-        // A ``resource`` definition refers to a fragment that should be
+        // A ``show`` definition refers to a fragment that should be
         // expected to include a subsequent parameter.
-        resource: this._createDefinitionStateParser(function(state) {
+        show: this._createDefinitionStateParser(function(state) {
           var _generators = generators.slice();
           var fragment = state.fragment;
           var options = state.options;
           var type = options && options.type;
-          // Resource generators are created when a ``resource`` definition
+          var generator;
+          // Resource generators are created when a ``show`` definition
           // is made. During such a definition, the fragment can be expected to
           // refer to the ``type`` of the resource expected.
-          _generators.push(_.bind(function(id) {
+          generator = _.bind(function(id) {
             var model = this.app.getResource(type || fragment);
 
             if (model instanceof Backbone.Model ||
                 model instanceof Backbone.Collection) {
-              return model.get(id);
+              model = model.get(id);
+              return _.result(model, 'isReady') || model;
             }
 
             return id;
-          }, this));
+          }, this);
+          generator.consumesArgument = true;
+          _generators.push(generator);
           state.generators = _generators;
           state.fragment = this._formatRoot(root + fragment) + ':' +
               (type || fragment);
+          this._handle(state);
+        }),
+        index: this._createDefinitionStateParser(function(state) {
+          var _generators = generators.slice();
+          var fragment = state.fragment;
+          var options = state.options;
+          var type = options && options.type;
+
+          _generators.push(_.bind(function() {
+            var model = this.app.getResource(type || fragment);
+
+            if (model instanceof Backbone.Model ||
+                model instanceof Backbone.Collection) {
+
+              if (_.result(model, 'isSynced') === false) {
+                model.fetch();
+              }
+
+              model = _.result(model, 'isReady') || model;
+            }
+
+            return model;
+          }, this));
+          state.generators = _generators;
+          state.fragment = root + fragment;
           this._handle(state);
         }),
         // An ``any`` definition behaves like a splat, and thus cannot support

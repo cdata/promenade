@@ -14,14 +14,18 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         defineRoutes: function() {
           this.handle('foo', 'foo');
           this.handle('bar', 'bar', function() {
-            this.resource('baz', 'barBaz');
+            this.show('baz', 'barBaz');
           });
-          this.resource('foo', 'receivesBar', function() {
-            this.resource('lur', 'receivesBarAndModel');
+          this.show('foo', 'receivesBar', function() {
+            this.show('lur', 'receivesBarAndModel');
           });
-          this.resource('lur', 'receivesModel');
-          this.resource('lur', function() {
-            this.resource('bing', 'receivesModelAndModel', { type: 'lur' });
+          this.show('lur', 'receivesModel');
+          this.show('lur', function() {
+            this.show('bing', 'receivesModelAndModel', { type: 'lur' });
+          });
+
+          this.index('lur', 'receivesCollection', function() {
+            this.show('bing', 'receivesCollectionAndModel', { type: 'lur' });
           });
         },
         foo: function() {},
@@ -30,7 +34,9 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         receivesBar: function(bar) {},
         receivesModel: function(model) {},
         receivesBarAndModel: function(bar, model) {},
-        receivesModelAndModel: function(modelOne, modelTwo) {}
+        receivesModelAndModel: function(modelOne, modelTwo) {},
+        receivesCollection: function(collection) {},
+        receivesCollectionAndModel: function(collection, model) {}
       });
       MyModel = Promenade.Model.extend({
         namespace: 'foo',
@@ -85,12 +91,12 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         for (var routeString in myController.routes) {
           ++count;
         }
-        expect(count).to.be.eql(7);
+        expect(count).to.be.eql(9);
       });
     });
 
     describe('when a navigation event occurs', function() {
-      describe('for a resource', function() {
+      describe('for a resourceful route', function() {
         beforeEach(function() {
           sinon.spy(app.controllers[0], 'receivesBar');
           sinon.spy(app.controllers[0], 'receivesModel');
@@ -100,6 +106,9 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           sinon.spy(app.controllers[0], 'deactivate');
           sinon.spy(app.controllers[1], 'activate');
           sinon.spy(app.controllers[1], 'deactivate');
+          sinon.spy(app.controllers[0], 'receivesCollection');
+          sinon.spy(app.controllers[0], 'receivesCollectionAndModel');
+
           app.lurCollection.reset([{
             id: '1'
           }]);
@@ -114,6 +123,8 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           app.controllers[0].deactivate.restore();
           app.controllers[1].activate.restore();
           app.controllers[1].deactivate.restore();
+          app.controllers[0].receivesCollection.restore();
+          app.controllers[0].receivesCollectionAndModel.restore();
           app.navigate('');
         });
 
@@ -151,6 +162,32 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
               app.controllers[0].activate)).to.be(true);
         });
 
+        describe('with an index route', function() {
+          beforeEach(function() {
+            app.lurCollection.fetch = function() {
+              this.isReady = (new $.Deferred()).resolve(this).promise();
+            };
+          });
+
+          it('yields a whole collection as an argument', function() {
+            app.navigate('lur', { trigger: true });
+
+            expect(app.controllers[0].receivesCollection.callCount).to.be(1);
+            expect(app.controllers[0].receivesCollection.getCall(0).calledWith(app.lurCollection))
+                .to.be(true);
+          });
+
+          describe('and a nested show route', function() {
+            it('yields a collection and a model', function() {
+              app.navigate('lur/bing/1', { trigger: true });
+
+              expect(app.controllers[0].receivesCollectionAndModel.callCount).to.be(1);
+              expect(app.controllers[0].receivesCollectionAndModel.calledWith(
+                  app.lurCollection, app.lurCollection.at(0))).to.be(true);
+            });
+          });
+        });
+
         describe('with an associated model', function() {
           it('passes the model-key value to the handler', function() {
             app.navigate('foo/bar', { trigger: true });
@@ -164,6 +201,31 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
             app.navigate('lur/1', { trigger: true });
             expect(app.controllers[0].receivesModel.getCall(0).calledWith(
                 app.lurCollection.get('1'))).to.be(true);
+          });
+
+          describe('that yields a syncing model', function() {
+            var server;
+
+            beforeEach(function() {
+              server = sinon.fakeServer.create();
+              server.respondWith('GET', '/api/lur/2',
+                                 [ 200,
+                                 { 'Content-Type': 'application/json' },
+                                 '{ "id": 2, "type": "lur", "remote": true }' ]);
+              app.lurCollection.url = '/api/lur';
+            });
+
+            afterEach(function() {
+              server.restore();
+            });
+
+            it('calls the controller handler when the model is ready', function() {
+              app.navigate('lur/2', { trigger: true });
+              expect(app.controllers[0].receivesModel.callCount).to.be(0);
+              server.respond();
+              expect(app.controllers[0].receivesModel.callCount).to.be(1);
+              expect(app.controllers[0].receivesModel.calledWith(app.lurCollection.get(2))).to.be(true);
+            });
           });
         });
 

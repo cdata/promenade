@@ -62,14 +62,6 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       this.undelegateEventMaps();
     },
 
-    _ensureSynced: function() {
-      Model.prototype._ensureSynced.call(this);
-    },
-
-    _ensureReady: function() {
-      Model.prototype._ensureReady.call(this);
-    },
-
     isSynced: function() {
       return Model.prototype.isSynced.apply(this, arguments);
     },
@@ -204,6 +196,14 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       subset.configure(options);
 
       return subset;
+    },
+
+    _ensureSynced: function() {
+      Model.prototype._ensureSynced.call(this);
+    },
+
+    _ensureReady: function() {
+      Model.prototype._ensureReady.call(this);
     },
 
     // The internal ``_prepareModel`` method in the ``Collection`` is extended

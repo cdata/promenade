@@ -396,12 +396,11 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
     _ensureReady: function() {
       var getsReady = new $.Deferred();
 
-      if (this._needsSync === false ||
-          (_.isFunction(this, 'isSparse') && !this.isSparse())) {
-        getsReady.resolve();
+      if (this._needsSync === false || _.result(this, 'isSparse') === false) {
+        getsReady.resolve(this);
       } else {
         this.once('sync update', function() {
-          getsReady.resolve();
+          getsReady.resolve(this);
         });
       }
 

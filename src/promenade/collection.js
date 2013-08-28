@@ -54,27 +54,32 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
 
       this.delegateEventMaps();
 
-      this._ensureSynced();
-      this._ensureReady();
+      this._resetSyncState();
     },
 
     dispose: function() {
       this.undelegateEventMaps();
     },
 
-    isSynced: function() {
-      return Model.prototype.isSynced.apply(this, arguments);
-    },
+    isSyncing: Model.prototype.isSyncing,
 
-    fetch: function() {
-      this._ensureReady();
-      this._syncing = true;
+    hasSynced: Model.prototype.hasSynced,
+
+    hasUpdated: Model.prototype.hasUpdated,
+
+    syncs: Model.prototype.syncs,
+
+    updates: Model.prototype.updates,
+
+    fetch: function(options) {
+      ++this._syncingStack;
+      this.trigger('before:fetch', this, options);
       return Backbone.Collection.prototype.fetch.apply(this, arguments);
     },
 
-    create: function() {
-      this._ensureReady();
-      this._syncing = true;
+    create: function(options) {
+      ++this._syncingStack;
+      this.trigger('before:create', this, options);
       return Backbone.Collection.prototype.create.apply(this, arguments);
     },
 
@@ -141,12 +146,6 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       return model;
     },
 
-    _isCandidateForFetch: function(model) {
-      return this.url && model && model.url &&
-          (!(model instanceof Model) ||
-           (model.isSparse() && !model.isSynced()));
-    },
-
     set: function(models, options) {
       var result;
 
@@ -168,13 +167,9 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
     // ``namespace`` property. If a namespace is defined, server data is
     // expected to nest the intended data for a client ``Collection`` in
     // a property that matches the defined ``namespace``.
-    parse: function(data) {
-      return Model.prototype.parse.apply(this, arguments);
-    },
+    parse: Model.prototype.parse,
 
-    sync: function() {
-      return Model.prototype.sync.apply(this, arguments);
-    },
+    sync: Model.prototype.sync,
 
     // A subset ``Collection`` instance can be created that represents the set
     // of ``models`` in the superset remaining when filtered by ``iterator``.
@@ -198,13 +193,13 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       return subset;
     },
 
-    _ensureSynced: function() {
-      Model.prototype._ensureSynced.call(this);
+    _isCandidateForFetch: function(model) {
+      return this.url && model && model.url &&
+          (!(model instanceof Model) ||
+           (model.isSparse() && !model.hasSynced()));
     },
 
-    _ensureReady: function() {
-      Model.prototype._ensureReady.call(this);
-    },
+    _resetSyncState: Model.prototype._resetSyncState,
 
     // The internal ``_prepareModel`` method in the ``Collection`` is extended
     // to support propagation of any internal ``app`` references. This ensures

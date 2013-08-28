@@ -67,15 +67,48 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       this.app = options.app;
 
       this._needsSync = options.needsSync !== false;
+      this._syncingStack = 0;
 
       this.delegateEventMaps();
 
-      this._ensureSynced();
-      this._ensureReady();
+      this._resetSyncState();
+      this._resetUpdateState();
     },
 
-    isSynced: function() {
-      return this._synced || this._syncing;
+    isSparse: function() {
+      var type = _.result(this, 'type');
+
+      for (var attr in this.attributes) {
+        if (attr !== 'id' && attr !== 'type') {
+          return false;
+        }
+      }
+
+      if (this.attributes.type && this.attributes.type !== type) {
+        return false;
+      }
+
+      return typeof this.attributes.id !== undefined;
+    },
+
+    isSyncing: function() {
+      return this._syncingStack > 0;
+    },
+
+    hasSynced: function() {
+      return this._synced;
+    },
+
+    syncs: function() {
+      return this._syncs;
+    },
+
+    hasUpdated: function() {
+      return this._updated;
+    },
+
+    updates: function() {
+      return this._updates;
     },
 
     /*url: function() {
@@ -133,6 +166,8 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       options = options || {};
       success = options.success;
 
+      this._resetSyncState();
+
       options.success = function(resp) {
         var app = model.app;
 
@@ -146,7 +181,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
           success.apply(options, arguments);
         }
 
-        this._syncing = false;
+        --this._syncingStack;
         this._synced = true;
 
         if (app) {
@@ -157,21 +192,21 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return Backbone.sync.call(this, method, model, options);
     },
 
-    fetch: function() {
-      this._ensureReady();
-      this._syncing = true;
+    fetch: function(options) {
+      ++this._syncingStack;
+      this.trigger('before:fetch', this, options);
       return Backbone.Model.prototype.fetch.apply(this, arguments);
     },
 
-    save: function() {
-      this._ensureReady();
-      this._syncing = true;
+    save: function(options) {
+      ++this._syncingStack;
+      this.trigger('before:save', this, options);
       return Backbone.Model.prototype.save.apply(this, arguments);
     },
 
-    destroy: function() {
-      this._ensureReady();
-      this._syncing = true;
+    destroy: function(options) {
+      ++this._syncingStack;
+      this.trigger('before:destroy', this, options);
       return Backbone.Model.prototype.destroy.apply(this, arguments);
     },
 
@@ -260,22 +295,6 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return value;
     },
 
-    isSparse: function() {
-      var type = _.result(this, 'type');
-
-      for (var attr in this.attributes) {
-        if (attr !== 'id' && attr !== 'type') {
-          return false;
-        }
-      }
-
-      if (this.attributes.type && this.attributes.type !== type) {
-        return false;
-      }
-
-      return typeof this.attributes.id !== undefined;
-    },
-
     toReference: function() {
       return {
         type: _.result(this, 'type'),
@@ -324,6 +343,14 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       }
 
       return data;
+    },
+
+    _selfEvents: {
+      'error': '_onSyncError'
+    },
+
+    _onSyncError: function() {
+      --this._syncingStack;
     },
 
     // This method returns true if the ``key`` and ``value`` attributes together
@@ -388,23 +415,33 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return value;
     },
 
-    _ensureSynced: function() {
-      this._synced = false;
-      this._syncing = false;
-    },
+    _resetSyncState: function() {
+      var eventuallySyncs = new $.Deferred();
 
-    _ensureReady: function() {
-      var getsReady = new $.Deferred();
+      this._synced = this._synced === true;
 
       if (this._needsSync === false || _.result(this, 'isSparse') === false) {
-        getsReady.resolve(this);
+        eventuallySyncs.resolve(this);
       } else {
-        this.once('sync update', function() {
-          getsReady.resolve(this);
+        this.once('sync', function() {
+          eventuallySyncs.resolve(this);
         });
       }
 
-      this.isReady = getsReady.promise();
+      this._syncs = eventuallySyncs.promise();
+    },
+
+    _resetUpdateState: function() {
+      var eventuallyUpdates = new $.Deferred();
+
+      this._updated = this._updated === true;
+
+      this.once('update', function() {
+        eventuallyUpdates.resolve(this);
+        this._resetUpdateState();
+      }, this);
+
+      this._updates = eventuallyUpdates.promise();
     },
 
     // The ``_pluralizeString`` method returns the plural version of a provided

@@ -15,6 +15,8 @@ define(['promenade/view', 'promenade/collection'],
     // that should be used to render individual items.
     itemView: View,
 
+    loadingView: null,
+
     // The default ``tagName`` for a ``CollectionView`` is changed from
     // ``'div'`` to ``'ul'``, as it is a very common case to use a list to
     // represent a collection of things in the DOM.
@@ -25,7 +27,8 @@ define(['promenade/view', 'promenade/collection'],
       // the the place where items in the provided ``collection`` should be
       // rendered to.
       this.layout = _.defaults(this.layout || {}, {
-        outlet: ''
+        outlet: '',
+        loading: ''
       });
       this.items = {};
 
@@ -36,9 +39,9 @@ define(['promenade/view', 'promenade/collection'],
 
     // Upon render, we call ``resetItems`` to make sure that every contained
     // item gets rendered as well.
-    _selfEvents: _.extend(View.prototype._selfEvents, {
+    _selfEvents: _.defaults({
       'render': 'resetItems'
-    }),
+    }, View.prototype._selfEvents),
 
     // A new mapping of ``collectionEvents`` can be declared. This allows a
     // distinction between the events bound to a ``model`` instance and a
@@ -49,12 +52,12 @@ define(['promenade/view', 'promenade/collection'],
     // By default the ``collectionEvents`` are set up to respond to manipulation
     // events in the given ``collection`` by adding, removing or resetting its
     // subviews.
-    _collectionEvents: {
+    _collectionEvents: _.defaults({
       'add': '_addItemByModel',
       'remove': '_removeItemByModel',
       'reset': '_removeAllItems',
       'sort': '_sortItems'
-    },
+    }, View.prototype._collectionEvents),
 
     // The semantics of looking up a given ``model`` or ``collection`` in a
     // ``CollectionView`` are slightly different. In ``Promenade.View``, a
@@ -73,6 +76,35 @@ define(['promenade/view', 'promenade/collection'],
       return new this.itemView({
         model: model
       }).render();
+    },
+
+    createLoadingView: function() {
+      return new this.loadingView({
+        model: this.getModel(),
+        collection: this.getCollection()
+      }).render();
+    },
+
+    hasLoadingView: function() {
+      return !!this.loadingView;
+    },
+
+    _setLoading: function() {
+      var firstLoad = !this._loadingStack;
+
+      View.prototype._setLoading.apply(this, arguments);
+
+      if (firstLoad && this.hasLoadingView()) {
+        this.getRegion('loading').show(this.createLoadingView());
+      }
+    },
+
+    _setNotLoading: function() {
+      View.prototype._setNotLoading.apply(this, arguments);
+
+      if (!this._loadingStack) {
+        this.getRegion('loading').empty();
+      }
     },
 
     // When a ``CollectionView`` needs to remove all items and re-add them

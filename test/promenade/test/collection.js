@@ -10,7 +10,7 @@ define(['backbone', 'promenade', 'promenade/collection'],
 
     describe('before it is synced', function() {
       it('reports that it is not yet synced', function() {
-        expect((new Collection()).isSynced()).to.be(false);
+        expect((new Collection()).hasSynced()).to.be(false);
       });
     });
 

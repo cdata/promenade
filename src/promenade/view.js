@@ -31,6 +31,8 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       this.layout = options.layout || this.layout || {};
 
+      this._loadingStack = 0;
+
       this._ensureRegions();
       this._ensureRenderQueue();
     },
@@ -217,12 +219,12 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
           data.model_is_new = model.isNew();
 
           if (model instanceof Model) {
-            data.model_is_synced = model.isSynced();
+            data.model_has_synced = model.hasSynced();
           }
         }
 
         if (collection instanceof Collection) {
-          data.collection_is_synced = collection.isSynced();
+          data.collection_has_synced = collection.hasSynced();
           data.collection_is_empty = collection.length === 0;
         }
       }
@@ -246,7 +248,17 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     // By default, a ``View`` will re-render on most manipulation-implying
     // events dispatched by its ``model`` or ``collection``.
     _modelEvents: {
-      'change': 'render'
+      'change': 'render',
+      'before:fetch': '_setLoading',
+      'before:save': '_setLoading',
+      'before:destroy': '_setLoading',
+      'sync': '_setNotLoading'
+    },
+
+    _collectionEvents: {
+      'before:fetch': '_setLoading',
+      'before:create': '_setLoading',
+      'sync': '_setNotLoading'
     },
 
     _selfEvents: {
@@ -265,6 +277,21 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       for (var region in this.layout) {
         _.invoke(this.getRegion(region).subviews,
                  'trigger', 'dom:detach', view || this);
+      }
+    },
+
+    _setLoading: function() {
+      ++this._loadingStack;
+      this.$el.addClass('loading');
+    },
+
+    _setNotLoading: function() {
+      if (!this._loadingStack) {
+        return;
+      }
+
+      if (--this._loadingStack === 0) {
+        this.$el.removeClass('loading');
       }
     },
 

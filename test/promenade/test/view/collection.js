@@ -11,13 +11,19 @@ define(['promenade', 'promenade/view/collection'],
     describe('when instantiated', function() {
 
       var myCollection;
+      var MyCollectionView;
       var myCollectionView;
 
       beforeEach(function() {
         myCollection = new Promenade.Collection([{ val: 1 },
                                                  { val: 2 },
                                                  { val: 3 }]);
-        myCollectionView = new CollectionView({
+
+        MyCollectionView = CollectionView.extend({
+          loadingView: Promenade.View
+        });
+
+        myCollectionView = new MyCollectionView({
           collection: myCollection
         });
       });
@@ -27,6 +33,38 @@ define(['promenade', 'promenade/view/collection'],
       });
 
       describe('with a collection', function() {
+
+        describe('that is fetched', function() {
+          var server;
+
+          beforeEach(function() {
+            server = sinon.fakeServer.create();
+            server.respondWith('GET', '/api/foo',
+                               [ 200,
+                               { 'Content-Type': 'application/json' },
+                               '[]' ]);
+
+            myCollection.url = '/api/foo';
+          });
+
+          afterEach(function() {
+            server.restore();
+          });
+
+          describe('when a loading view is defined', function() {
+            it('says it has a loading view', function() {
+              expect(myCollectionView.hasLoadingView()).to.be(true);
+            });
+
+            it('shows the loading view when collection syncs', function() {
+              expect(myCollectionView.getRegion('loading').subviews.length).to.be(0);
+              myCollection.fetch();
+              expect(myCollectionView.getRegion('loading').subviews.length).to.be(1);
+              server.respond();
+              expect(myCollectionView.getRegion('loading').subviews.length).to.be(0);
+            });
+          });
+        });
 
         describe('that is empty', function() {
           beforeEach(function() {

@@ -36,8 +36,50 @@ define(['promenade', 'promenade/model'],
     });
 
     describe('before it is synced', function() {
+      var myModel;
+
+      beforeEach(function() {
+        myModel = new MyModel();
+      });
+
       it('reports that it is not yet synced', function() {
-        expect((new Model()).isSynced()).to.be(false);
+        expect(myModel.hasSynced()).to.be(false);
+      });
+
+      it('reports that it is not currently syncing', function() {
+        expect(myModel.isSyncing()).to.be(false);
+      });
+
+      describe('and then a sync starts', function() {
+        beforeEach(function() {
+          myModel.fetch();
+        });
+
+        it('reports that it is not yet synced', function() {
+          expect(myModel.hasSynced()).to.be(false);
+        });
+
+        it('reports that it is currently syncing', function() {
+          expect(myModel.isSyncing()).to.be(true);
+        });
+
+        describe('and the server responds', function() {
+          it('resolves the syncing promise', function() {
+            var syncResolveCalls = 0;
+
+            // TODO: This test is brittle against the possibility that
+            // future promises will resolve on a separate tick..
+            myModel.syncs().then(function() {
+              syncResolveCalls++;
+            });
+
+            expect(syncResolveCalls).to.be(0);
+
+            server.respond();
+
+            expect(syncResolveCalls).to.be(1);
+          });
+        });
       });
     });
 

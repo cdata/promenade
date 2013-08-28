@@ -165,7 +165,7 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         describe('with an index route', function() {
           beforeEach(function() {
             app.lurCollection.fetch = function() {
-              this.isReady = (new $.Deferred()).resolve(this).promise();
+              this._syncs = (new $.Deferred()).resolve(this).promise();
             };
           });
 

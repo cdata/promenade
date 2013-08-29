@@ -75,6 +75,11 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       this._resetUpdateState();
     },
 
+    dispose: function() {
+      this.undelegateEventMaps();
+      this.releaseConnections();
+    },
+
     isSparse: function() {
       var type = _.result(this, 'type');
 
@@ -95,8 +100,16 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return this._syncingStack > 0;
     },
 
+    canSync: function() {
+      return !!((this.collection && this.collection.url) || _.isString(this.url) || this.urlRoot);
+    },
+
     hasSynced: function() {
-      return this._synced;
+      return !this._needsSync || this._synced;
+    },
+
+    needsSync: function() {
+      return this.canSync() && !this.hasSynced() && !this.isSyncing();
     },
 
     syncs: function() {
@@ -420,7 +433,8 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
 
       this._synced = this._synced === true;
 
-      if (this._needsSync === false || _.result(this, 'isSparse') === false) {
+      if (_.result(this, 'canSync') === false ||
+          _.result(this, 'isSparse') === false) {
         eventuallySyncs.resolve(this);
       } else {
         this.once('sync', function() {

@@ -51,19 +51,24 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       this.app = options.app;
 
       this._needsSync = options.needsSync !== false;
+      this._syncingStack = 0;
 
       this.delegateEventMaps();
 
       this._resetSyncState();
     },
 
-    dispose: function() {
-      this.undelegateEventMaps();
-    },
+    dispose: Model.prototype.dispose,
 
     isSyncing: Model.prototype.isSyncing,
 
+    canSync: function() {
+      return !!_.result(this, 'url');
+    },
+
     hasSynced: Model.prototype.hasSynced,
+
+    needsSync: Model.prototype.needsSync,
 
     hasUpdated: Model.prototype.hasUpdated,
 

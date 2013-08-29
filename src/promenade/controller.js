@@ -173,7 +173,13 @@ define(['backbone', 'underscore', 'promenade/object'],
             if (model instanceof Backbone.Model ||
                 model instanceof Backbone.Collection) {
               model = model.get(id);
-              return _.result(model, 'syncs') || model;
+
+              if (_.result(model, 'isSparse') === true &&
+                  _.result(model, 'isSyncing') === true) {
+                model = _.result(model, 'syncs') || model;
+              }
+
+              return  model;
             }
 
             return id;
@@ -198,7 +204,7 @@ define(['backbone', 'underscore', 'promenade/object'],
                 model instanceof Backbone.Collection) {
 
               if (_.result(model, 'isSparse') !== false &&
-                  _.result(model, 'hasSynced') !== true) {
+                  _.result(model, 'needsSync') !== false) {
                 model.fetch();
               }
 

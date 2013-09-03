@@ -1,6 +1,6 @@
 {
   "name": "promenade",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Yet another Backbone++ MVC framework",
   "main": "lib/promenade.js",
   "directories": {

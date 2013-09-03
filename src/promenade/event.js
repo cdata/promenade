@@ -6,6 +6,10 @@ define(['backbone', 'underscore'],
 
   var EventApi = {
 
+    eventMapsAreDelegated: function() {
+      return this._eventMapsDelegated === true;
+    },
+
     delegateEventMaps: function() {
       this._ensureEventMaps();
       this.undelegateEventMaps();

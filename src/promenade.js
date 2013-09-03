@@ -1,11 +1,13 @@
 (function() {
   'use strict';
 
-  define(['promenade/view', 'promenade/view/collection', 'promenade/view/form', 'promenade/model',
-          'promenade/controller', 'promenade/application', 'promenade/region',
-          'promenade/object', 'promenade/collection', 'promenade/event'],
-         function(View, CollectionView, FormView, Model,  Controller, Application,
-                  Region, PromenadeObject, Collection, EventApi) {
+  define(['promenade/view', 'promenade/view/collection', 'promenade/view/form',
+          'promenade/model', 'promenade/controller', 'promenade/application',
+          'promenade/region', 'promenade/object', 'promenade/collection',
+          'promenade/event', 'promenade/sync'],
+         function(View, CollectionView, FormView, Model,  Controller,
+                  Application, Region, PromenadeObject, Collection, EventApi,
+                  SyncApi) {
     return {
       Model: Model,
       Collection: Collection,
@@ -16,6 +18,7 @@
       Application: Application,
       Region: Region,
       Event: EventApi,
+      Sync: SyncApi,
       'Object': PromenadeObject
     };
   });

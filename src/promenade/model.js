@@ -1,5 +1,5 @@
-define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event'],
-       function(Backbone, require, RetainerApi, EventApi) {
+define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event', 'promenade/sync'],
+       function(Backbone, require, RetainerApi, EventApi, SyncApi) {
   'use strict';
   // Promenade.Model
   // ---------------
@@ -67,7 +67,6 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       this.app = options.app;
 
       this._needsSync = options.needsSync !== false;
-      this._syncingStack = 0;
 
       this.delegateEventMaps();
 
@@ -96,26 +95,6 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return typeof this.attributes.id !== undefined;
     },
 
-    isSyncing: function() {
-      return this._syncingStack > 0;
-    },
-
-    canSync: function() {
-      return !!((this.collection && this.collection.url) || _.isString(this.url) || this.urlRoot);
-    },
-
-    hasSynced: function() {
-      return !this._needsSync || this._synced;
-    },
-
-    needsSync: function() {
-      return this.canSync() && !this.hasSynced() && !this.isSyncing();
-    },
-
-    syncs: function() {
-      return this._syncs;
-    },
-
     hasUpdated: function() {
       return this._updated;
     },
@@ -123,30 +102,6 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
     updates: function() {
       return this._updates;
     },
-
-    /*url: function() {
-      var collection = _.result(this, 'collection');
-      var namespace = (collection && _.result(collection, 'namespace')) ||
-          _.result(this, 'namespace');
-      var base;
-
-      if (!namespace) {
-        return Backbone.model.prototype.url.apply(this, arguments);
-      }
-
-      // Adapted from Backbone's default implementation:
-      base = _.result(this, 'urlRoot') || (function() {
-        throw new Error('A "urlRoot" property or function must be specified');
-      })();
-
-      base += (base.charAt(base.length - 1) === '/' ? '' : '/') + encodeURIComponent(namespace);
-
-      if (this.isNew()) {
-        return base;
-      }
-
-      return base + '/' + encodeURIComponent(this.id);
-    },*/
 
     // The default behavior of parse is extended to support the added
     // ``namespace`` property. If a namespace is defined, server data is
@@ -167,58 +122,17 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return data;
     },
 
-    // Sync is overridden at the ``Model`` and ``Collection`` level in order to
-    // support a new ``'before:sync'`` event. This event is triggered on both
-    // a ``Model`` or ``Collection`` and their associated ``Application`` (if
-    // available. This event allows an ``Application`` to propagate extra
-    // response data before the normal ``'sync'`` event triggers, and prior to
-    // any network success callbacks being called.
-    sync: function(method, model, options) {
-      var success;
-
-      options = options || {};
-      success = options.success;
-
-      this._resetSyncState();
-
-      options.success = function(resp) {
-        var app = model.app;
-
-        if (app) {
-          app.trigger('before:sync', model, resp, options);
-        }
-
-        model.trigger('before:sync', model, resp, options);
-
-        if (success) {
-          success.apply(options, arguments);
-        }
-
-        --this._syncingStack;
-        this._synced = true;
-
-        if (app) {
-          app.trigger('sync', model, resp, options);
-        }
-      };
-
-      return Backbone.sync.call(this, method, model, options);
-    },
-
     fetch: function(options) {
-      ++this._syncingStack;
       this.trigger('before:fetch', this, options);
       return Backbone.Model.prototype.fetch.apply(this, arguments);
     },
 
     save: function(options) {
-      ++this._syncingStack;
       this.trigger('before:save', this, options);
       return Backbone.Model.prototype.save.apply(this, arguments);
     },
 
     destroy: function(options) {
-      ++this._syncingStack;
       this.trigger('before:destroy', this, options);
       return Backbone.Model.prototype.destroy.apply(this, arguments);
     },
@@ -358,14 +272,6 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       return data;
     },
 
-    _selfEvents: {
-      'error': '_onSyncError'
-    },
-
-    _onSyncError: function() {
-      --this._syncingStack;
-    },
-
     // This method returns true if the ``key`` and ``value`` attributes together
     // are determined to refer to an embedded reference.
     _isEmbeddedReference: function(key, value) {
@@ -426,23 +332,6 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       }
 
       return value;
-    },
-
-    _resetSyncState: function() {
-      var eventuallySyncs = new $.Deferred();
-
-      this._synced = this._synced === true;
-
-      if (_.result(this, 'canSync') === false ||
-          _.result(this, 'isSparse') === false) {
-        eventuallySyncs.resolve(this);
-      } else {
-        this.once('sync', function() {
-          eventuallySyncs.resolve(this);
-        });
-      }
-
-      this._syncs = eventuallySyncs.promise();
     },
 
     _resetUpdateState: function() {
@@ -512,7 +401,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
     }
   });
 
-  _.extend(Model.prototype, RetainerApi, EventApi);
+  _.extend(Model.prototype, RetainerApi, EventApi, SyncApi);
 
   return Model;
 });

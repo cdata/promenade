@@ -1,7 +1,7 @@
 define(['backbone', 'underscore', 'require', 'promenade/model',
         'promenade/collection/retainer', 'promenade/collection/subset',
-        'promenade/event'],
-       function(Backbone, _, require, Model, RetainerApi, SubsetApi, EventApi) {
+        'promenade/event', 'promenade/sync'],
+       function(Backbone, _, require, Model, RetainerApi, SubsetApi, EventApi, SyncApi) {
   'use strict';
   // Promenade.Collection
   // --------------------
@@ -28,7 +28,7 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
     // ``Application``. By default, a ``Collection`` defers to its designated
     // ``Model`` to resolve the value of ``type``.
     type: function() {
-      return _.result(this.model.prototype, 'type') || '';
+      return (this.model && _.result(this.model.prototype, 'type')) || '';
     },
 
     // An optional ``namespace`` can be declared. By default it is an empty
@@ -51,7 +51,6 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       this.app = options.app;
 
       this._needsSync = options.needsSync !== false;
-      this._syncingStack = 0;
 
       this.delegateEventMaps();
 
@@ -60,30 +59,16 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
 
     dispose: Model.prototype.dispose,
 
-    isSyncing: Model.prototype.isSyncing,
-
-    canSync: function() {
-      return !!_.result(this, 'url');
-    },
-
-    hasSynced: Model.prototype.hasSynced,
-
-    needsSync: Model.prototype.needsSync,
-
     hasUpdated: Model.prototype.hasUpdated,
-
-    syncs: Model.prototype.syncs,
 
     updates: Model.prototype.updates,
 
     fetch: function(options) {
-      ++this._syncingStack;
       this.trigger('before:fetch', this, options);
       return Backbone.Collection.prototype.fetch.apply(this, arguments);
     },
 
     create: function(options) {
-      ++this._syncingStack;
       this.trigger('before:create', this, options);
       return Backbone.Collection.prototype.create.apply(this, arguments);
     },
@@ -174,8 +159,6 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
     // a property that matches the defined ``namespace``.
     parse: Model.prototype.parse,
 
-    sync: Model.prototype.sync,
-
     // A subset ``Collection`` instance can be created that represents the set
     // of ``models`` in the superset remaining when filtered by ``iterator``.
     // All semantics of ``_.filter`` apply when filtering a subset. The returned
@@ -203,8 +186,6 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
           (!(model instanceof Model) ||
            (model.isSparse() && !model.hasSynced()));
     },
-
-    _resetSyncState: Model.prototype._resetSyncState,
 
     // The internal ``_prepareModel`` method in the ``Collection`` is extended
     // to support propagation of any internal ``app`` references. This ensures
@@ -240,7 +221,7 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
     }
   });
 
-  _.extend(Collection.prototype, RetainerApi, EventApi);
+  _.extend(Collection.prototype, RetainerApi, EventApi, SyncApi);
 
   Collection.Subset = SubsetApi;
   Collection.Retainer = RetainerApi;

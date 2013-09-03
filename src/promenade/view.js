@@ -39,28 +39,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
     supportedEventMaps: ['model', 'collection', 'self'],
 
-    // ``delegateEvents`` is a built-in Backbone concept that handles creating
-    // event handlers for DOM events. Promenade leverages this concept to
-    // support managed event binding related to other event emitters.
-    delegateEvents: function() {
-      Backbone.View.prototype.delegateEvents.apply(this, arguments);
-
-      this.delegateEventMaps();
-
-      return this;
-    },
-
-    // ``undelegateEvents`` undoes all of what ``delegateEvents`` does. It is
-    // extended by the ``View`` to undo what the extended ``delegateEvents``
-    // does in Promenade.
-    undelegateEvents: function() {
-      Backbone.View.prototype.undelegateEvents.apply(this, arguments);
-
-      this.undelegateEventMaps();
-
-      return this;
-    },
-
     // The default ``render`` routine of Backbone is a no-op. In Promenade,
     // ``render`` has been formalized to support subviews and templates.
     render: function(recursive) {
@@ -114,6 +92,8 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this._bubbleDomDetach();
 
       this.undelegateEvents();
+
+      this.undelegateEventMaps();
       this.releaseConnections();
 
       Backbone.View.prototype.remove.apply(this, arguments);
@@ -123,13 +103,20 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     // The template can be declared on the class level.
     template: '',
 
+    delegateEvents: function() {
+      if (!this.eventMapsAreDelegated()) {
+        this.delegateEventMaps();
+      }
+
+      return Backbone.View.prototype.delegateEvents.apply(this, arguments);
+    },
 
     // A new ``detach`` method allows the ``View`` to be detached in a way that
     // is non-destructive for DOM event delegation.
     detach: function() {
       var region;
 
-      if (!this.$el.parent().length) {
+      if (!this.el.parentNode) {
         return this;
       }
 
@@ -150,7 +137,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this.detach();
 
       this.$el.appendTo($parent);
-      this.delegateEvents();
 
       this.trigger('attach', this);
 

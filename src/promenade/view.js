@@ -152,7 +152,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     },
 
     asyncRender: function() {
-      return this._queueRenderOperation(this.render);
+      return this.pushRenderQueue(this.render);
     },
 
     // Model lookup has been formalized so that there are distinct rules for

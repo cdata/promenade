@@ -56,13 +56,13 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       }
 
       _.each(views, function(view) {
+        this.listenTo(view, 'navigate', this._onSubviewNavigate);
+
         if (view instanceof PromenadeView) {
           view.attachTo(this.$container);
         } else {
           this.$container.append(view.el);
         }
-
-        this.listenTo(view, 'navigate', this._onSubviewNavigate);
       }, this);
 
       this.subviews = this.subviews.concat(views);

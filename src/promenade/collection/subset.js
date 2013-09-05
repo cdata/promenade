@@ -12,6 +12,7 @@ define(['backbone', 'underscore'],
       this.superset = options.superset;
       this.iterator = options.iterator;
       this.alwaysRefresh = options.alwaysRefresh === true;
+      this.dependencies = options.dependencies || [];
 
       this._connection = null;
       this._connectionStack = [];
@@ -81,6 +82,9 @@ define(['backbone', 'underscore'],
     },
 
     _connectToSuperset: function() {
+      var index;
+      var resource;
+
       // The ``'add'``, ``'remove'`` and ``'reset'`` events are listened to by
       // the ``subset`` on the superset ``Collection`` instance so that changes
       // to the superset are reflected automatically in the ``subset``.
@@ -93,6 +97,18 @@ define(['backbone', 'underscore'],
         this.listenTo(this.superset, 'reset', this._onSupersetReset);
         this.listenTo(this.superset, 'change', this._onSupersetChange);
         this.listenTo(this.superset, 'sort', this._onSupersetSort);
+        this.listenTo(this.superset, 'sync', this._onSupersetSync);
+
+        for (index = 0; index < this.dependencies.length; ++index) {
+          resource = this.app.getResource(this.dependencies[index]);
+
+          if (!resource) {
+            continue;
+          }
+
+          this.listenTo(resource,
+                        'add remove reset change sort', this.refresh);
+        }
 
         this.refresh();
 
@@ -107,8 +123,21 @@ define(['backbone', 'underscore'],
     },
 
     _disconnectFromSuperset: function() {
+      var index;
+      var resource;
+
       if (this.superset && this.isConnected()) {
         this.stopListening(this.superset);
+
+        for (index = 0; index < this.dependencies.length; ++index) {
+          resource = this.app.getResource(this.dependencies[index]);
+
+          if (!resource) {
+            continue;
+          }
+
+          this.stopListening(resource);
+        }
 
         this.reset(null, { silent: true });
 
@@ -189,6 +218,10 @@ define(['backbone', 'underscore'],
       }
 
       this.sort(options);
+    },
+
+    _onSupersetSync: function(model, resp, options) {
+      this.trigger('sync', this, resp, options);
     },
 
     set: function(models, options) {

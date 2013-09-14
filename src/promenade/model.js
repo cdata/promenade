@@ -67,6 +67,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       this.app = options.app;
 
       this._needsSync = options.needsSync !== false;
+      this._resourceMap = this._resourceMap || {};
 
       this.delegateEventMaps();
 
@@ -101,6 +102,30 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
 
     updates: function() {
       return this._updates;
+    },
+
+    urlFragment: function() {
+      return _.result(this, 'namespace') + '/' + _.result(this, 'id');
+    },
+
+    composeUrlFrom: function() {
+      var url = _.result(this, 'urlRoot');
+      var others = Array.prototype.slice.call(arguments);
+      var other;
+      var index;
+
+      for (index = 0; index < others.length; ++index) {
+        other = others[index];
+        url += '/' + _.result(other, 'urlFragment');
+      }
+
+      url += '/' + _.result(this, 'namespace');
+
+      return url;
+    },
+
+    belongsToResource: function(resource) {
+      return !!this._resourceMap[resource];
     },
 
     // The default behavior of parse is extended to support the added
@@ -146,6 +171,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       var attr;
       var Type;
       var current;
+      var resourceAdded;
 
       // We borrow the options parsing mechanism specific to the original
       // Backbone implementation of this method.
@@ -160,8 +186,20 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
       // app instance, if provided in the options. This behavior is used to
       // support reference passing of a top-level ``Application`` down a deeply
       // nested chain of ``Collection`` and ``Model`` instances.
-      if (options && options.app) {
-        this.app = options.app;
+      if (options) {
+        if (options.app) {
+          this.app = options.app;
+        }
+
+        if (options.url) {
+          this._resourceMap = this._resourceMap || {};
+
+          if (!this.belongsToResource(options.url)) {
+            resourceAdded = true;
+          }
+
+          this._resourceMap[options.url] = true;
+        }
       }
 
       // Then we iterate over all attributes being set.
@@ -201,6 +239,10 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event
             }
           }
         }
+      }
+
+      if (resourceAdded) {
+        this.trigger('resource', this);
       }
 
       // Once our attributes being set have been formatted appropriately,

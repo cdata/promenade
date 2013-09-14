@@ -5,6 +5,8 @@ define(['promenade', 'promenade/model'],
 
     var MyModel;
     var MyNamespacedModel;
+    var AnotherNamespacedModel;
+    var ThirdNamespacedModel;
     var server;
 
     beforeEach(function() {
@@ -20,9 +22,22 @@ define(['promenade', 'promenade/model'],
       });
 
       MyNamespacedModel = Model.extend({
+        urlRoot: '/api',
         url: '/api/bar',
         type: 'bar',
-        namespace: 'bar'
+        namespace: 'bars'
+      });
+
+      AnotherNamespacedModel = Model.extend({
+        urlRoot: '/api',
+        type: 'baz',
+        namespace: 'bazes'
+      });
+
+      ThirdNamespacedModel = Model.extend({
+        urlRoot: '/api',
+        type: 'vim',
+        namespace: 'vims'
       });
     });
 
@@ -33,6 +48,39 @@ define(['promenade', 'promenade/model'],
     it('is defined', function() {
       expect(Promenade.Model).to.be.ok();
       expect(Model).to.be.ok();
+    });
+
+    describe('when fetching', function() {
+      describe('from an atypical resource location', function() {
+        describe('derived from a relationship to other resources', function() {
+          var myModel;
+          var otherModel;
+          var thirdModel;
+
+          beforeEach(function() {
+            MyNamespacedModel.url = Model.prototype.url;
+            MyNamespacedModel.urlRoot = '/api';
+
+            myModel = new MyNamespacedModel();
+            otherModel = new AnotherNamespacedModel({ id: 1 });
+            thirdModel = new ThirdNamespacedModel({ id: 2 });
+          });
+
+          it('generates urls based on a related model', function() {
+            var resourceUrl = myModel.composeUrlFrom(otherModel);
+
+            expect(resourceUrl).to.be('/api/bazes/1/bars');
+          });
+
+          it('generates compound urls based on a series of related models', function() {
+            var resourceUrl = myModel.composeUrlFrom(otherModel, thirdModel);
+            var otherResourceUrl = myModel.composeUrlFrom(thirdModel, otherModel);
+
+            expect(resourceUrl).to.be('/api/bazes/1/vims/2/bars');
+            expect(otherResourceUrl).to.be('/api/vims/2/bazes/1/bars');
+          });
+        });
+      });
     });
 
     describe('before it is synced', function() {
@@ -247,7 +295,7 @@ define(['promenade', 'promenade/model'],
       beforeEach(function() {
         myModel = new MyNamespacedModel();
         data = {
-          bar: {
+          bars: {
             foo: 1
           }
         };
@@ -257,7 +305,7 @@ define(['promenade', 'promenade/model'],
         it('extracts only namespaced data when parsing', function() {
           var parsed = myModel.parse(data);
 
-          expect(data.bar).to.be.eql(parsed);
+          expect(data.bars).to.be.eql(parsed);
         });
 
         describe('and the expected namespace is absent in the data', function() {

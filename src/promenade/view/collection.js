@@ -203,12 +203,11 @@ define(['promenade/view', 'promenade/collection'],
     _sortItems: function() {
       var region = this.getRegion('outlet');
 
-      _.each(this.items, function(view) {
-        region.detach(view);
-      }, this);
-
       this.getCollection().each(function(model) {
-        region.add(this.items[model.cid]);
+        var view = this.items[model.cid];
+
+        region.detach(view);
+        region.add(view);
       }, this);
     }
   });

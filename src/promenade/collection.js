@@ -50,6 +50,8 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       // nested chain of ``Collection`` and ``Model`` instances.
       this.app = options.app;
 
+      this.resources = {};
+
       this._needsSync = options.needsSync !== false;
 
       this.delegateEventMaps();
@@ -179,6 +181,39 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       subset.configure(options);
 
       return subset;
+    },
+
+    resource: function(url, options) {
+      var resource = this.resources[url];
+      var iterator;
+
+      options = options || {};
+      options.url = url;
+
+      iterator = options.filter;
+
+      if (resource) {
+        if (iterator) {
+          resource.iterator = iterator;
+          resource.refresh();
+        }
+
+        return resource;
+      }
+
+      resource = this.subset(function(model) {
+        var matchesResource = model.belongsToResource(url);
+
+        if (!matchesResource) {
+          return false;
+        }
+
+        return iterator ? iterator(model) : true;
+      }, options);
+
+      this.resources[url] = resource;
+
+      return resource;
     },
 
     _isCandidateForFetch: function(model) {

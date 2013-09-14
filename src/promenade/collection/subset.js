@@ -98,6 +98,7 @@ define(['backbone', 'underscore'],
         this.listenTo(this.superset, 'change', this._onSupersetChange);
         this.listenTo(this.superset, 'sort', this._onSupersetSort);
         this.listenTo(this.superset, 'sync', this._onSupersetSync);
+        this.listenTo(this.superset, 'resource', this._onSupersetChange);
 
         for (index = 0; index < this.dependencies.length; ++index) {
           resource = this.app.getResource(this.dependencies[index]);
@@ -255,10 +256,45 @@ define(['backbone', 'underscore'],
   // in-place manipulation of the ``SubsetCollection`` instance is redirected to
   // the ``superset``. Changes will automatically reflect in the
   // ``SubsetCollection`` as events propagate.
-  _.each(['add', 'remove', 'create', 'fetch'], function(method) {
+  _.each(['add', 'remove'], function(method) {
     SubsetApi[method] = function() {
-      if (this.superset && this.isConnected()) {
+      if (this.superset) {
         return this.superset[method].apply(this.superset, arguments);
+      }
+    };
+  });
+
+  _.each(['create', 'fetch', 'save'], function(method) {
+    SubsetApi[method] = function(options) {
+      var self = this;
+      var error;
+      var success;
+
+      if (this.superset) {
+        options = options || {};
+        options.url = _.result(this, 'url');
+
+        error = options.error;
+        success = options.success;
+
+        options.error = function() {
+          self._popSync();
+          if (error) {
+            error.apply(this, arguments);
+          }
+        };
+
+        options.success = function() {
+          self._popSync();
+          self._synced = true;
+          if (success) {
+            success.apply(this, arguments);
+          }
+        };
+
+        this._pushSync();
+
+        return this.superset[method].call(this.superset, options);
       }
     };
   });

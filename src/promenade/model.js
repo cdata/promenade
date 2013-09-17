@@ -1,5 +1,5 @@
-define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/event', 'promenade/sync'],
-       function(Backbone, require, RetainerApi, EventApi, SyncApi) {
+define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/delegation', 'promenade/sync'],
+       function(Backbone, require, RetainerApi, DelegationApi, SyncApi) {
   'use strict';
   // Promenade.Model
   // ---------------

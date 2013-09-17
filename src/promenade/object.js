@@ -1,5 +1,5 @@
-define(['backbone', 'underscore'],
-       function(Backbone, _) {
+define(['backbone', 'underscore', 'promenade/queue'],
+       function(Backbone, _, QueueApi) {
   'use strict';
   // Promenade.Object
   // ----------------
@@ -25,6 +25,7 @@ define(['backbone', 'underscore'],
   // All ``Promenade.Object`` instances have ``Backbone.Events`` mixed in to
   // their prototypes, and thus support Backbone's events API.
   _.extend(PromenadeObject.prototype, Backbone.Events);
+  _.extend(PromenadeObject.prototype, QueueApi);
 
   return PromenadeObject;
 });

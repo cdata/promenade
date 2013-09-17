@@ -37,6 +37,7 @@ define(['backbone', 'underscore', 'jquery'],
 
       this._queueOperations = this._queueOperations || {};
       this._queueOperations[id] = this._queueOperations[id] || [];
+      this._queueWorkers = this._queueWorkers || {};
       this._queueWorkers[id] = this._queueWorkers[id] || null;
 
       return this._queueOperations[id];
@@ -48,6 +49,9 @@ define(['backbone', 'underscore', 'jquery'],
       this._startQueue(id);
 
       return queue.length;
+    },
+    hasEmptyQueue: function(id) {
+      return !this.getQueue(id).length;
     },
     queueCompletes: function(id) {
       return this._queueWorkers[this._queueId(id)] || this.promise();
@@ -78,7 +82,7 @@ define(['backbone', 'underscore', 'jquery'],
 
         operation = queue.shift();
         operation = _.isFunction(operation) ?
-            operation.apply(this, arguments) : operation;
+            operation.apply(self, arguments) : operation;
 
         // TODO: Evaluate need for failure tolerance here:
         self.when(operation).then(work, work);

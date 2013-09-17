@@ -1,7 +1,7 @@
 define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
-        'promenade/collection/retainer', 'promenade/event', 'promenade/model',
+        'promenade/collection/retainer', 'promenade/delegation', 'promenade/model',
         'promenade/collection', 'promenade/queue'],
-       function($, Backbone, templates, _, Region, RetainerApi, EventApi,
+       function($, Backbone, templates, _, Region, RetainerApi, DelegationApi,
                 Model, Collection, QueueApi) {
   'use strict';
   // Promenade.View
@@ -121,9 +121,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       this.$el.detach();
 
-      this.trigger('detach', this);
-
-      this._bubbleDomDetach();
+      this.invalidateAttachmentState();
 
       return this;
     },
@@ -137,11 +135,17 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       this.$el.appendTo($parent);
 
-      this.trigger('attach', this);
-
-      this._bubbleDomAttach();
+      this.invalidateAttachmentState();
 
       return this;
+    },
+
+    freezeHeight: function() {
+      this.$el.css('height', this.$el.height());
+    },
+
+    unfreezeHeight: function() {
+      this.$el.css('height', '');
     },
 
     // ``deepRender`` is a decorator for performing a recursive call to
@@ -226,7 +230,17 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     },
 
     pushRenderQueue: function(fn) {
-      return this.pushQueue(fn, 'render');
+      return this.pushQueue(_.bind(fn, this), 'render');
+    },
+
+    invalidateAttachmentState: function() {
+      if (this.el.parentNode) {
+        this.trigger('attach', this);
+        this._bubbleDomAttach();
+      } else {
+        this.trigger('detach', this);
+        this._bubbleDomDetach();
+      }
     },
 
     // By default, a ``View`` will re-render on most manipulation-implying

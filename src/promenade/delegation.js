@@ -1,10 +1,10 @@
 define(['backbone', 'underscore'],
        function(Backbone, _) {
   'use strict';
-  // Promenade.Event API
+  // Promenade.Delegation API
   // -------------------
 
-  var EventApi = {
+  var DelegationApi = {
 
     eventMapsAreDelegated: function() {
       return this._eventMapsDelegated === true;
@@ -182,5 +182,5 @@ define(['backbone', 'underscore'],
     _trim: /^([\s]*)|([\s]*)$/gi
   };
 
-  return EventApi;
+  return DelegationApi;
 });

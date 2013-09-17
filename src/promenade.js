@@ -4,10 +4,10 @@
   define(['promenade/view', 'promenade/view/collection', 'promenade/view/form',
           'promenade/model', 'promenade/controller', 'promenade/application',
           'promenade/region', 'promenade/object', 'promenade/collection',
-          'promenade/event', 'promenade/sync'],
+          'promenade/delegation', 'promenade/sync'],
          function(View, CollectionView, FormView, Model,  Controller,
-                  Application, Region, PromenadeObject, Collection, EventApi,
-                  SyncApi) {
+                  Application, Region, PromenadeObject, Collection,
+                  DelegationApi, SyncApi) {
     return {
       Model: Model,
       Collection: Collection,
@@ -17,7 +17,7 @@
       Controller: Controller,
       Application: Application,
       Region: Region,
-      Event: EventApi,
+      Delegation: DelegationApi,
       Sync: SyncApi,
       'Object': PromenadeObject
     };

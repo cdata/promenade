@@ -201,14 +201,24 @@ define(['promenade/view', 'promenade/collection'],
     },
 
     _sortItems: function() {
-      var region = this.getRegion('outlet');
+      if (this.hasEmptyQueue('sort')) {
+        this.pushQueue(this.tick(function() {
+          var region = this.getRegion('outlet');
+          var views = [];
 
-      this.getCollection().each(function(model) {
-        var view = this.items[model.cid];
+          this.freezeHeight();
 
-        region.detach(view);
-        region.add(view);
-      }, this);
+          this.getCollection().each(function(model) {
+            var view = this.items[model.cid];
+            region.detach(view);
+            views.push(view);
+          }, this);
+
+          region.add(views);
+
+          this.unfreezeHeight();
+        }), 'sort');
+      }
     }
   });
 

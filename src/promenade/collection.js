@@ -1,7 +1,7 @@
 define(['backbone', 'underscore', 'require', 'promenade/model',
         'promenade/collection/retainer', 'promenade/collection/subset',
-        'promenade/event', 'promenade/sync'],
-       function(Backbone, _, require, Model, RetainerApi, SubsetApi, EventApi, SyncApi) {
+        'promenade/delegation', 'promenade/sync'],
+       function(Backbone, _, require, Model, RetainerApi, SubsetApi, DelegationApi, SyncApi) {
   'use strict';
   // Promenade.Collection
   // --------------------

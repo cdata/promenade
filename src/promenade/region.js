@@ -21,6 +21,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       this.selector = options.selector;
       this.subviews = [];
 
+      this._documentFragment = document.createDocumentFragment();
       this._resetContainer();
 
       // The region listens to the before:render and render events of the
@@ -46,6 +47,8 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // the ``Region`` instance in order.
     add: function(views) {
       var PromenadeView = require('promenade/view');
+      var view;
+      var index;
 
       if (!views) {
         return;
@@ -55,15 +58,22 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         views = [views];
       }
 
-      _.each(views, function(view) {
+      for (index = 0; index < views.length; ++index) {
+        view = views[index];
+
         this.listenTo(view, 'navigate', this._onSubviewNavigate);
+        this._documentFragment.appendChild(view.el);
+      }
+
+      this.$container.append(this._documentFragment);
+
+      for (index = 0; index < views.length; ++index) {
+        view = views[index];
 
         if (view instanceof PromenadeView) {
-          view.attachTo(this.$container);
-        } else {
-          this.$container.append(view.el);
+          view.invalidateAttachmentState();
         }
-      }, this);
+      }
 
       this.subviews = this.subviews.concat(views);
     },
@@ -73,6 +83,8 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // does not unset event bindings, it will be.
     remove: function(views) {
       var PromenadeView = require('promenade/view');
+      var view;
+      var index;
 
       if (!views) {
         return;
@@ -82,17 +94,19 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         views = [views];
       }
 
-      _.each(views, function(view) {
+      for (index = 0; index < views.length; ++index) {
+        view = views[index];
         view.remove();
-
         this.stopListening(view, 'navigate', this._onSubviewNavigate);
-      }, this);
+      }
 
       this.subviews = _.difference(this.subviews, views);
     },
 
     detach: function(views) {
       var PromenadeView = require('promenade/view');
+      var view;
+      var index;
 
       if (!views) {
         return;
@@ -102,7 +116,9 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         views = [views];
       }
 
-      _.each(views, function(view) {
+      for (index = 0; index < views.length; ++index) {
+        view = views[index];
+
         if (view instanceof PromenadeView) {
           view.detach();
         } else {
@@ -110,7 +126,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         }
 
         this.stopListening(view, 'navigate', this._onSubviewNavigate);
-      }, this);
+      }
 
       this.subviews = _.difference(this.subviews, views);
     },
@@ -124,9 +140,11 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // exceeds the length of the current set of ``subviews``, the ``view`` is
     // appended. If a list of ``views`` is provided, each ``view`` is inserted
     // in order starting at the provided ``index``.
-    insertAt: function(views, index) {
+    insertAt: function(views, at) {
       var PromenadeView = require('promenade/view');
-      var sibling = this.subviews[index];
+      var sibling = this.subviews[at];
+      var view;
+      var index;
 
       if (!_.isArray(views)) {
         views = [views];
@@ -137,15 +155,14 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         return;
       }
 
-      _.each(views, function(view) {
+      for (index = 0; index < views.length; ++index) {
+        view = views[index];
         sibling.$el.before(view.$el);
-      }, this);
+      }
 
       views.unshift(index, 0);
 
       this.subviews.splice.apply(this.subviews, views);
-
-      //this.subviews.splice(index, 0, views);
     },
 
     // This is a wrapper for the most common subview insertion operation. When
@@ -154,7 +171,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     show: function(views) {
       var PromenadeView = require('promenade/view');
 
-      this.remove(this.subviews);
+      this.empty();
 
       this.add(views);
     },

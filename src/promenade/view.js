@@ -1,8 +1,8 @@
 define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
         'promenade/collection/retainer', 'promenade/event', 'promenade/model',
-        'promenade/collection'],
+        'promenade/collection', 'promenade/queue'],
        function($, Backbone, templates, _, Region, RetainerApi, EventApi,
-                Model, Collection) {
+                Model, Collection, QueueApi) {
   'use strict';
   // Promenade.View
   // --------------
@@ -34,7 +34,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this._loadingStack = 0;
 
       this._ensureRegions();
-      this._ensureRenderQueue();
     },
 
     supportedEventMaps: ['model', 'collection', 'self'],
@@ -152,7 +151,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     },
 
     asyncRender: function() {
-      return this.pushRenderQueue(this.render);
+      return this.pushQueue(this.render, 'render');
     },
 
     // Model lookup has been formalized so that there are distinct rules for
@@ -221,14 +220,13 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     },
 
     getRenderQueue: function() {
-      return this._renderQueue.then(_.bind(function() {
-        return this._tick();
+      return this.tick(_.bind(function() {
+        return this.queueCompletes('render');
       }, this));
     },
 
     pushRenderQueue: function(fn) {
-      this._renderQueue = this.getRenderQueue().then(_.bind(fn, this));
-      return this._renderQueue;
+      return this.pushQueue(fn, 'render');
     },
 
     // By default, a ``View`` will re-render on most manipulation-implying
@@ -294,10 +292,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       }
     },
 
-    _ensureRenderQueue: function() {
-      this._renderQueue = (new $.Deferred()).resolve().promise();
-    },
-
     _tick: function() {
       var Result = new $.Deferred();
 
@@ -315,7 +309,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     }
   });
 
-  _.extend(View.prototype, RetainerApi, EventApi);
+  _.extend(View.prototype, RetainerApi, EventApi, QueueApi);
 
   return View;
 });

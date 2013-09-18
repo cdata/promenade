@@ -51,7 +51,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
     // parsing it.
     namespace: '',
 
-    supportedEventMaps: ['self', 'app'],
+    defaultDelegationTargets: ['self', 'app'],
 
     propagates: {},
 
@@ -69,14 +69,14 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
       this._needsSync = options.needsSync !== false;
       this._resourceMap = this._resourceMap || {};
 
-      this.delegateEventMaps();
+      this.activateDelegation();
 
       this._resetSyncState();
       this._resetUpdateState();
     },
 
     dispose: function() {
-      this.undelegateEventMaps();
+      this.deactivateDelegation();
       this.releaseConnections();
     },
 
@@ -443,7 +443,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
     }
   });
 
-  _.extend(Model.prototype, RetainerApi, EventApi, SyncApi);
+  _.extend(Model.prototype, RetainerApi, DelegationApi, SyncApi);
 
   return Model;
 });

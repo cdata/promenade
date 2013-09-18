@@ -1,11 +1,11 @@
-define(['backbone', 'promenade', 'promenade/event'],
-       function(Backbone, Promenade, EventApi) {
+define(['backbone', 'promenade', 'promenade/delegation'],
+       function(Backbone, Promenade, DelegationApi) {
 
-  describe('Promenade.Event', function() {
+  describe('Promenade.Delegation', function() {
 
     it('is defined', function() {
-      expect(Promenade.Event).to.be.ok();
-      expect(EventApi).to.be.ok();
+      expect(Promenade.Delegation).to.be.ok();
+      expect(DelegationApi).to.be.ok();
     });
 
     describe('an object with the event API', function() {
@@ -16,9 +16,9 @@ define(['backbone', 'promenade', 'promenade/event'],
         EventObject = Promenade.Object.extend({
           supportedEventMaps: ['self', 'other'],
           events: {
-            'self foo': 'onSelfFoo',
-            'self bar:baz': 'onSelfBar',
-            'other foo': ['onOtherFoo', 'onOtherFoo2'],
+            '#self foo': 'onSelfFoo',
+            '#self bar:baz': 'onSelfBar',
+            '#other foo': ['onOtherFoo', 'onOtherFoo2'],
             'foo': 'onFoo'
           },
           onSelfFoo: function() {},
@@ -27,9 +27,9 @@ define(['backbone', 'promenade', 'promenade/event'],
           onOtherFoo2: function() {},
           initialize: function() {
             this.other = new Promenade.Object();
-            this.delegateEventMaps();
+            this.activateDelegation();
           }
-        }).extend(EventApi);
+        }).extend(DelegationApi);
 
         eventObject = new EventObject();
 
@@ -42,21 +42,21 @@ define(['backbone', 'promenade', 'promenade/event'],
         eventObject.onSelfFoo.restore();
         eventObject.onOtherFoo.restore();
         eventObject.onOtherFoo2.restore();
-        eventObject.undelegateEventMaps();
+        eventObject.deactivateDelegation();
       });
 
       it('adds an event map delegation and undelegation interface', function() {
-        expect(EventObject.prototype.delegateEventMaps).to.be.a(Function);
-        expect(EventObject.prototype.undelegateEventMaps).to.be.a(Function);
+        expect(EventObject.prototype.activateDelegation).to.be.a(Function);
+        expect(EventObject.prototype.deactivateDelegation).to.be.a(Function);
       });
 
       describe('when the event maps are delegated', function() {
         beforeEach(function() {
-          eventObject.delegateEventMaps();
+          eventObject.activateDelegation();
         });
 
         afterEach(function() {
-          eventObject.undelegateEventMaps();
+          eventObject.deactivateDelegation();
         });
 
         it('creates event maps on the object', function() {
@@ -78,7 +78,7 @@ define(['backbone', 'promenade', 'promenade/event'],
 
         describe('multiple times', function() {
           beforeEach(function() {
-            eventObject.delegateEventMaps();
+            eventObject.activateDelegation();
           });
 
           it('does not delegate handlers multiple times', function() {
@@ -88,7 +88,7 @@ define(['backbone', 'promenade', 'promenade/event'],
 
           describe('and then undelegated', function() {
             beforeEach(function() {
-              eventObject.undelegateEventMaps();
+              eventObject.deactivateDelegation();
             });
 
             it('removes all delegated handlers', function() {

@@ -6,71 +6,68 @@ define(['backbone', 'underscore'],
 
   var DelegationApi = {
 
-    eventMapsAreDelegated: function() {
-      return this._eventMapsDelegated === true;
+    isDelegationActive: function() {
+      return this._delegationActive === true;
     },
 
-    delegateEventMaps: function() {
-      this._ensureEventMaps();
-      this.undelegateEventMaps();
-      this._toggleEventMaps(true);
+    activateDelegation: function() {
+      this.deactivateDelegation();
+      this._toggleDelegation(true);
     },
 
-    undelegateEventMaps: function() {
-      if (!this._eventMapsDelegated) {
+    deactivateDelegation: function() {
+      if (!this.isDelegationActive()) {
         return;
       }
 
-      this._toggleEventMaps(false);
+      this._toggleDelegation(false);
+    },
+
+    delegate: function(target, event, handler) {
+      this.listenTo(target, event, handler);
+    },
+
+    undelegate: function(target, event, handler) {
+      this.stopListening(target, event, handler);
     },
 
     getSelf: function() {
       return this;
     },
 
-    // If a ``selfEvents`` map is defined, handlers will be bound that respond
-    // to events dispatched by the ``View`` instance. This is useful in cases
-    // where, for instance, something needs to be done before or after a
-    // ``View`` is rendered.
-    delegateSelfEvents: function() {
-      this._toggleEventMapsForTarget(['_selfEvents', 'selfEvents'], this, 'listenTo');
-    },
-
-    undelegateSelfEvents: function() {
-      this._toggleEventMapsForTarget(['_selfEvents', 'selfEvents'], this, 'stopListening');
-    },
-
-    _toggleEventMaps: function(enabled) {
-      var types = this._getSupportedEventMaps();
-      var original;
-      var key;
+    _toggleDelegation: function(enabled) {
+      var types;
+      var type;
+      var index;
       var target;
       var maps;
 
-      for (key in types) {
-        original = key;
-        key = key[0].toUpperCase() + key.slice(1);
+      this._ensureDelegation();
 
-        target = 'get' + key;
+      types = this.delegationTargets;
+
+      for (index = 0; index < types.length; ++index) {
+        type = types[index];
+        target = type[0].toUpperCase() + type.slice(1);
+
+        target = 'get' + target;
         target = _.result(this, target);
 
-        key = original;
-
         if (!target) {
-          target = key;
-          target = _.result(this, target);
+          target = _.result(this, type);
         }
 
-        maps = ['_' + key + 'Events', key + 'Events'];
+        maps = ['_' + type + 'Events', type + 'Events'];
 
         this._setEventMapsForTarget(
-            maps, target, enabled ? 'listenTo' : 'stopListening');
+            maps, target, enabled);
       }
 
-      this._eventMapsDelegated = enabled;
+      this._delegationActive = enabled;
     },
 
-    _setEventMapsForTarget: function(maps, target, operation) {
+    _setEventMapsForTarget: function(maps, target, enabled) {
+      var operation = enabled ? 'delegate' : 'undelegate';
       var eventName;
       var index;
       var map;
@@ -102,82 +99,70 @@ define(['backbone', 'underscore'],
       }
     },
 
-    _getSupportedEventMaps: function() {
-      var supportedList;
-      var supportedMap;
-      var index;
-
-      if (this._supportedEventMaps) {
-        return this._supportedEventMaps;
-      }
-
-      supportedList = _.result(this, 'supportedEventMaps') || [];
-      supportedMap = {};
-
-      for (index = 0; index < supportedList.length; ++index) {
-        supportedMap[supportedList[index]] = true;
-      }
-
-      this._supportedEventMaps = supportedMap;
-
-      return supportedMap;
-    },
-
-    _ensureEventMaps: function() {
+    _ensureDelegation: function() {
       var events = _.result(this, 'events');
-      var supportedMaps;
       var event;
       var tokens;
       var handler;
-      var key;
+      var map;
 
-      if (!events || this._eventMapsCreated) {
+      if (!events && !this.defaultDelegationTargets) {
+        this.delegationTargets = [];
+      }
+
+      if (this.delegationTargets) {
         return;
       }
 
-      this._eventMapsCreated = true;
+      this.delegationTargets = this.delegationTargets ||
+          (this.defaultDelegationTargets &&
+           this.defaultDelegationTargets.slice()) || [];
+
       this.events = {};
 
-      supportedMaps = this._getSupportedEventMaps();
-
       for (event in events) {
-        tokens = this._tokenizeEventString(event, supportedMaps);
+        tokens = this._parseEventString(event);
 
         if (!tokens) {
           continue;
         }
 
+        map = tokens[0];
         handler = events[event];
-        key = tokens[0];
+
+        if (map !== 'events') {
+          if (!_.contains(this.delegationTargets, map)) {
+            this.delegationTargets.push(map);
+          }
+          map = map + 'Events';
+        }
+
         event = tokens[1];
 
-        this[key] = _.result(this, key) || {};
-        this[key][event] = handler;
+        this[map] = _.result(this, map) || {};
+        this[map][event] = handler;
       }
     },
 
-    _tokenizeEventString: function(event, supportedEventMaps) {
+    _parseEventString: function(event) {
       var tokens = event.match(this._splitEventString);
+      var target = 'events';
 
-      if (!(tokens && tokens.length)) {
-        return;
+      if (!_.isArray(tokens)) {
+        return [];
       }
 
-      supportedEventMaps = supportedEventMaps || {};
-      tokens = tokens.slice(1, 3);
-
-      if (tokens[0] in supportedEventMaps) {
-        tokens[0] = tokens[0] + 'Events';
-        return tokens;
+      if (tokens[1] === this._delegationIdentifier) {
+        target = tokens[2];
+        event = tokens[3];
       }
 
-      tokens[1] = tokens.join(' ').replace(this._trim, '');
-      tokens[0] = 'events';
-
-      return tokens;
+      return [target, event];
     },
 
-    _splitEventString: /^\s*([\w^]*)\s*(.*)$/i,
+    _delegationIdentifier: '#',
+
+    _splitEventString: /^\s*(#)?\s*([\w^]*)\s*(.*)$/i,
 
     _trim: /^([\s]*)|([\s]*)$/gi
   };

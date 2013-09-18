@@ -54,7 +54,7 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
 
       this._needsSync = options.needsSync !== false;
 
-      this.delegateEventMaps();
+      this.activateDelegation();
 
       this._resetSyncState();
     },
@@ -256,7 +256,7 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
     }
   });
 
-  _.extend(Collection.prototype, RetainerApi, EventApi, SyncApi);
+  _.extend(Collection.prototype, RetainerApi, DelegationApi, SyncApi);
 
   Collection.Subset = SubsetApi;
   Collection.Retainer = RetainerApi;

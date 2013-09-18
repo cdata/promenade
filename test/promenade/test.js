@@ -38,7 +38,7 @@ define(['../promenade'], function() {
            'test/controller',
            'test/application',
            'test/region',
-           'test/event',
+           'test/delegation',
            'test/object'],
            function() {
              mocha.run();

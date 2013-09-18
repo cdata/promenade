@@ -36,7 +36,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this._ensureRegions();
     },
 
-    supportedEventMaps: ['model', 'collection', 'self'],
+    defaultDelegationTargets: ['model', 'collection', 'self'],
 
     // The default ``render`` routine of Backbone is a no-op. In Promenade,
     // ``render`` has been formalized to support subviews and templates.
@@ -92,7 +92,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       this.undelegateEvents();
 
-      this.undelegateEventMaps();
+      this.deactivateDelegation();
       this.releaseConnections();
 
       Backbone.View.prototype.remove.apply(this, arguments);
@@ -103,8 +103,8 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     template: '',
 
     delegateEvents: function() {
-      if (!this.eventMapsAreDelegated()) {
-        this.delegateEventMaps();
+      if (!this.isDelegationActive()) {
+        this.activateDelegation();
       }
 
       return Backbone.View.prototype.delegateEvents.apply(this, arguments);
@@ -323,7 +323,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     }
   });
 
-  _.extend(View.prototype, RetainerApi, EventApi, QueueApi);
+  _.extend(View.prototype, RetainerApi, DelegationApi, QueueApi);
 
   return View;
 });

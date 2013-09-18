@@ -179,7 +179,6 @@ define(['backbone', 'promenade', 'promenade/view'],
         });
 
         afterEach(function() {
-          otherView.off();
           myView.detach();
         });
 

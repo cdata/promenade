@@ -94,7 +94,8 @@ define(['backbone', 'underscore'],
       this._synced = true;
       this._popSync();
 
-      success.call(options, resp, status, options);
+      if(success)
+        success.call(options, resp, status, options);
 
       if (app) {
         app.trigger('sync', model, resp, options);
@@ -103,7 +104,8 @@ define(['backbone', 'underscore'],
 
     _onSyncError: function(error, model, resp, options) {
       this._popSync();
-      error.call(options, model, resp, options);
+      if(error)
+        error.call(options, model, resp, options);
     },
 
     _onBeforeSend: function(beforeSend, xhr, options) {

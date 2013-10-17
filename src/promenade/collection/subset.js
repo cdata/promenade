@@ -77,7 +77,8 @@ define(['backbone', 'underscore'],
       }
 
       this._prototype.add.call(this, this.superset.filter(this.iterator), {
-        operateOnSubset: true
+        operateOnSubset: true,
+        sort: false
       });
     },
 

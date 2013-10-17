@@ -266,8 +266,8 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
 
     toReference: function() {
       return {
-        type: _.result(this, 'type'),
-        id: _.result(this, 'id')
+        type: this.get('type'),
+        id: this.id
       };
     },
 

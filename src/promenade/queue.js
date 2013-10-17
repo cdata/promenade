@@ -15,7 +15,7 @@ define(['backbone', 'underscore', 'jquery'],
     when: function() {
       return this.promiseProvider.when.apply(this.promiseProvider, arguments);
     },
-    tick: function(fn) {
+    tick: function(fn, sleep) {
       var tick = this.defer();
       var tock = _.bind(function() {
         var result = _.isFunction(fn) ? fn.call(this) : fn;
@@ -24,10 +24,12 @@ define(['backbone', 'underscore', 'jquery'],
         });
       }, this);
 
-      if (_.isFunction(window.requestAnimationFrame)) {
+      sleep = sleep || 0;
+
+      if (sleep < 20 && _.isFunction(window.requestAnimationFrame)) {
         window.requestAnimationFrame(tock);
       } else {
-        window.setTimeout(tock, 0);
+        window.setTimeout(tock, sleep);
       }
 
       return _.result(tick, 'promise');
@@ -54,7 +56,12 @@ define(['backbone', 'underscore', 'jquery'],
       return !this.getQueue(id).length;
     },
     queueCompletes: function(id) {
-      return this._queueWorkers[this._queueId(id)] || this.promise();
+      var queueWorker;
+
+      id = this._queueId(id);
+      queueWorker = this._queueWorkers && this._queueWorkers[id];
+
+      return queueWorker || this.promise();
     },
     _startQueue: function(id) {
       var self = this;

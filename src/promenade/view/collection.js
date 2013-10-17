@@ -13,9 +13,9 @@ define(['promenade/view', 'promenade/collection'],
 
     // The ``itemView`` declared on a ``CollectionView`` is the ``View`` class
     // that should be used to render individual items.
-    itemView: View,
+    itemClass: View,
 
-    loadingView: null,
+    loadingClass: null,
 
     // The default ``tagName`` for a ``CollectionView`` is changed from
     // ``'div'`` to ``'ul'``, as it is a very common case to use a list to
@@ -72,21 +72,26 @@ define(['promenade/view', 'promenade/collection'],
       return this.model;
     },
 
-    createItemView: function(model) {
-      return new this.itemView({
-        model: model
+    createItemView: function(model, collection) {
+      return new this.itemClass({
+        model: model,
+        collection: collection
       }).render();
     },
 
+    resolveItemCollection: function(model) {
+      return model.get('collection') || undefined;
+    },
+
     createLoadingView: function() {
-      return new this.loadingView({
+      return new this.loadingClass({
         model: this.getModel(),
         collection: this.getCollection()
       }).render();
     },
 
     hasLoadingView: function() {
-      return !!this.loadingView;
+      return !!this.loadingClass;
     },
 
     _setLoading: function() {
@@ -146,6 +151,7 @@ define(['promenade/view', 'promenade/collection'],
       var region;
       var index;
       var view;
+      var collection;
 
       this.outletRegion.$container.removeClass('empty');
 
@@ -159,11 +165,14 @@ define(['promenade/view', 'promenade/collection'],
       // instance into our ``'outlet'`` region.
       region = this.getRegion('outlet');
       index = this.getCollection().indexOf(model);
-      view = this.createItemView(model);
+      collection = this.resolveItemCollection(model);
+      view = this.createItemView(model, collection);
 
       this.items[model.cid] = view;
 
       region.insertAt(view, index);
+
+      this.trigger('add:item', view, this);
     },
 
     // Subviews are removed in a similar way to how they are added. A received
@@ -182,6 +191,8 @@ define(['promenade/view', 'promenade/collection'],
 
       region.remove(view);
       view.undelegateEvents();
+
+      this.trigger('remove:item', view, this);
     },
 
     // Sometimes we want to remove all subviews at once. For instance, when our
@@ -195,6 +206,7 @@ define(['promenade/view', 'promenade/collection'],
       _.each(this.items, function(view) {
         region.remove(view);
         view.undelegateEvents();
+        this.trigger('remove:item', view, this);
       }, this);
 
       this.items = {};
@@ -210,6 +222,11 @@ define(['promenade/view', 'promenade/collection'],
 
           this.getCollection().each(function(model) {
             var view = this.items[model.cid];
+
+            if (!view) {
+              return;
+            }
+
             region.detach(view);
             views.push(view);
           }, this);

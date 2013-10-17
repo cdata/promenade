@@ -61,7 +61,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       // If recursive rendering is desired, each region is asked to re-render
       // its subviews.
-      if (recursive) {
+      if (recursive === true) {
         for (region in this.layout) {
           this.getRegion(region).renderSubviews(recursive);
         }

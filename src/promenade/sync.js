@@ -56,14 +56,18 @@ define(['backbone', 'underscore'],
       this._pushSync();
 
       options.success = _.bind(this._onSyncSuccess, this,
-                               success, model, options);
+                               method, model, options, success);
       options.error = _.bind(this._onSyncError, this, error);
       options.beforeSend = _.bind(this._onBeforeSend, this, beforeSend);
 
       return Backbone.sync.call(this, method, model, options);
     },
 
-    _onSyncSuccess: function(success, model, options, resp, status, xhr) {
+    replay: function(method, model, options) {
+
+    },
+
+    _onSyncSuccess: function(method, model, options, success, resp, status, xhr) {
       var app = model.app;
       var upperIndex;
       var lowerIndex;
@@ -73,6 +77,13 @@ define(['backbone', 'underscore'],
           upperIndex = xhr.getResponseHeader('X-Upper-Index');
           lowerIndex = xhr.getResponseHeader('X-Lower-Index');
         } catch(e) {}
+      }
+
+      if (options.pipe && upperIndex && method === 'read' &&
+          upperIndex !== this._paginationUpperIndex) {
+        _.delay(_.bind(function() {
+          this.sync(method, model, options);
+        }, this), 0);
       }
 
       if (options.requestMore && upperIndex) {

@@ -30,7 +30,7 @@
     "framework"
   ],
   "author": "Chris Joel",
-  "license": "None",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/dabohealth/promenade/issues"
   }

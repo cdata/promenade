@@ -20,7 +20,7 @@ define(['promenade', 'promenade/view/collection'],
                                                  { val: 3 }]);
 
         MyCollectionView = CollectionView.extend({
-          loadingView: Promenade.View
+          loadingClass: Promenade.View
         });
 
         myCollectionView = new MyCollectionView({

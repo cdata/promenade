@@ -37,28 +37,6 @@ define(['promenade/view', 'promenade/collection'],
       this.retains(this.getCollection());
     },
 
-    // Upon render, we call ``resetItems`` to make sure that every contained
-    // item gets rendered as well.
-    _selfEvents: _.defaults({
-      'render': 'resetItems'
-    }, View.prototype._selfEvents),
-
-    // A new mapping of ``collectionEvents`` can be declared. This allows a
-    // distinction between the events bound to a ``model`` instance and a
-    // ``collection`` instance. This means that a ``CollectionView`` can support
-    // behavior in response to both a given ``model`` and a given
-    // ``collection``.
-    //
-    // By default the ``collectionEvents`` are set up to respond to manipulation
-    // events in the given ``collection`` by adding, removing or resetting its
-    // subviews.
-    _collectionEvents: _.defaults({
-      'add': '_addItemByModel',
-      'remove': '_removeItemByModel',
-      'reset': '_removeAllItems',
-      'sort': '_sortItems'
-    }, View.prototype._collectionEvents),
-
     // The semantics of looking up a given ``model`` or ``collection`` in a
     // ``CollectionView`` are slightly different. In ``Promenade.View``, a
     // ``model`` can be represented by either a ``model`` or ``collection`` (in
@@ -72,44 +50,25 @@ define(['promenade/view', 'promenade/collection'],
       return this.model;
     },
 
-    createItemView: function(model, collection) {
-      return new this.itemClass({
-        model: model,
-        collection: collection
-      }).render();
+    createItemView: function(options) {
+      return new this.itemClass(options);
     },
 
-    resolveItemCollection: function(model) {
-      return model.get('collection') || undefined;
+    resolveItemOptions: function(model) {
+      return {
+        model: model
+      };
     },
 
     createLoadingView: function() {
       return new this.loadingClass({
         model: this.getModel(),
         collection: this.getCollection()
-      }).render();
+      });
     },
 
     hasLoadingView: function() {
       return !!this.loadingClass;
-    },
-
-    _setLoading: function() {
-      var firstLoad = !this._loadingStack;
-
-      View.prototype._setLoading.apply(this, arguments);
-
-      if (firstLoad && this.hasLoadingView()) {
-        this.getRegion('loading').show(this.createLoadingView());
-      }
-    },
-
-    _setNotLoading: function() {
-      View.prototype._setNotLoading.apply(this, arguments);
-
-      if (!this._loadingStack) {
-        this.getRegion('loading').empty();
-      }
     },
 
     // When a ``CollectionView`` needs to remove all items and re-add them
@@ -136,6 +95,46 @@ define(['promenade/view', 'promenade/collection'],
       return this;
     },
 
+    // Upon render, we call ``resetItems`` to make sure that every contained
+    // item gets rendered as well.
+    _selfEvents: _.defaults({
+      'render': 'resetItems'
+    }, View.prototype._selfEvents),
+
+    // A new mapping of ``collectionEvents`` can be declared. This allows a
+    // distinction between the events bound to a ``model`` instance and a
+    // ``collection`` instance. This means that a ``CollectionView`` can support
+    // behavior in response to both a given ``model`` and a given
+    // ``collection``.
+    //
+    // By default the ``collectionEvents`` are set up to respond to manipulation
+    // events in the given ``collection`` by adding, removing or resetting its
+    // subviews.
+    _collectionEvents: _.defaults({
+      'add': '_addItemByModel',
+      'remove': '_removeItemByModel',
+      'reset': '_removeAllItems',
+      'sort': '_sortItems'
+    }, View.prototype._collectionEvents),
+
+    _setLoading: function() {
+      var firstLoad = !this._loadingStack;
+
+      View.prototype._setLoading.apply(this, arguments);
+
+      if (firstLoad && this.hasLoadingView()) {
+        this.getRegion('loading').show(this.createLoadingView());
+      }
+    },
+
+    _setNotLoading: function() {
+      View.prototype._setNotLoading.apply(this, arguments);
+
+      if (!this._loadingStack) {
+        this.getRegion('loading').empty();
+      }
+    },
+
     // Subviews in a ``CollectionView`` are tracked by the ``cid`` of the models
     // that represent them. This allows us to look up a ``View`` instance by
     // a model instance.
@@ -151,7 +150,7 @@ define(['promenade/view', 'promenade/collection'],
       var region;
       var index;
       var view;
-      var collection;
+      var options;
 
       this.outletRegion.$container.removeClass('empty');
 
@@ -165,8 +164,8 @@ define(['promenade/view', 'promenade/collection'],
       // instance into our ``'outlet'`` region.
       region = this.getRegion('outlet');
       index = this.getCollection().indexOf(model);
-      collection = this.resolveItemCollection(model);
-      view = this.createItemView(model, collection);
+      options = this.resolveItemOptions(model);
+      view = this.createItemView(options);
 
       this.items[model.cid] = view;
 
@@ -231,7 +230,7 @@ define(['promenade/view', 'promenade/collection'],
             views.push(view);
           }, this);
 
-          region.add(views);
+          region.add(views, { render: false });
 
           this.unfreezeHeight();
         }), 'sort');

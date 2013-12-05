@@ -56,6 +56,10 @@ define(['backbone', 'underscore', 'jquery', 'require'],
       }, this));
     },
 
+    //routeFor: function() {
+      //var args = Array.prototype.slice.call(arguments);
+    //},
+
     navigate: function(fragment, options) {
       fragment = this.parseFragment(fragment);
 

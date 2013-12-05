@@ -6,6 +6,7 @@ define(['backbone', 'underscore', 'jquery'],
 
   var QueueApi = {
     promiseProvider: $,
+    defaultSleep: 0,
     defer: function() {
       return new this.promiseProvider.Deferred();
     },
@@ -16,23 +17,28 @@ define(['backbone', 'underscore', 'jquery'],
       return this.promiseProvider.when.apply(this.promiseProvider, arguments);
     },
     tick: function(fn, sleep) {
-      var tick = this.defer();
-      var tock = _.bind(function() {
-        var result = _.isFunction(fn) ? fn.call(this) : fn;
-        this.when(result).then(function() {
-          tick.resolve();
-        });
+      return _.bind(function() {
+        var tick = this.defer();
+        var args = arguments;
+        var tock = _.bind(function() {
+          var result = _.isFunction(fn) ? fn.apply(this, args) : fn;
+          var that = this;
+          this.when(result).then(function() {
+            tick.resolve();
+          });
+        }, this);
+        var factory;
+
+        sleep = sleep || this.defaultSleep || 0;
+
+        if (sleep < 20 && _.isFunction(window.requestAnimationFrame)) {
+          window.requestAnimationFrame(tock);
+        } else {
+          window.setTimeout(tock, sleep);
+        }
+
+        return _.result(tick, 'promise');
       }, this);
-
-      sleep = sleep || 0;
-
-      if (sleep < 20 && _.isFunction(window.requestAnimationFrame)) {
-        window.requestAnimationFrame(tock);
-      } else {
-        window.setTimeout(tock, sleep);
-      }
-
-      return _.result(tick, 'promise');
     },
     getQueue: function(id) {
       id = this._queueId(id);
@@ -41,13 +47,36 @@ define(['backbone', 'underscore', 'jquery'],
       this._queueOperations[id] = this._queueOperations[id] || [];
       this._queueWorkers = this._queueWorkers || {};
       this._queueWorkers[id] = this._queueWorkers[id] || null;
+      this._queueSteps = this._queueSteps || {};
+      this._queueSteps[id] = this._queueSteps[id] || [];
 
       return this._queueOperations[id];
     },
+    queueTailCompletes: function(id) {
+      var queue = this.getQueue(id);
+      var steps = this._queueSteps[this._queueId(id)];
+
+      return steps[steps.length - 1] || this.promise();
+    },
     pushQueue: function(operation, id) {
       var queue = this.getQueue(id);
+      var steps = this._queueSteps[this._queueId(id)];
 
-      queue.push(operation);
+      var stepCompletion = this.defer();
+      var step = _.bind(function() {
+        var complete = function() {
+          stepCompletion.resolve();
+          steps.shift();
+        };
+        var result = _.isFunction(operation) ?
+            operation.apply(this, arguments) : operation;
+
+        return this.when(result).then(complete, complete);
+      }, this);
+
+      steps.push(_.result(stepCompletion, 'promise'));
+      queue.push(step);
+
       this._startQueue(id);
 
       return queue.length;
@@ -81,18 +110,16 @@ define(['backbone', 'underscore', 'jquery'],
       self._queueWorkers[id] = _.result(workCompletes, 'promise');
 
       (function work() {
+        var next;
+
         if (queue.length === 0) {
           workCompletes.resolve();
           self._queueWorkers[id] = null;
           return;
         }
 
-        operation = queue.shift();
-        operation = _.isFunction(operation) ?
-            operation.apply(self, arguments) : operation;
-
+        self.when(queue.shift()()).then(work, work);
         // TODO: Evaluate need for failure tolerance here:
-        self.when(operation).then(work, work);
       })();
     },
     _queueId: function(id) {

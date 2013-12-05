@@ -1,5 +1,5 @@
-define(['backbone', 'underscore', 'promenade/object'],
-       function(Backbone, _, PromenadeObject) {
+define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation'],
+       function(Backbone, _, PromenadeObject, DelegationApi) {
   'use strict';
   // Promenade.Controller
   // --------------------

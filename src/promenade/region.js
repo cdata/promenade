@@ -45,11 +45,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // subviews to the ``Region`` instance. New ``views`` can be in the form of
     // a single instance, or an ``Array`` of instances, and will be appended to
     // the ``Region`` instance in order.
-    add: function(views) {
-      var PromenadeView = require('promenade/view');
-      var view;
-      var index;
-
+    add: function(views, options) {
       if (!views) {
         return;
       }
@@ -58,22 +54,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         views = [views];
       }
 
-      for (index = 0; index < views.length; ++index) {
-        view = views[index];
-
-        this.listenTo(view, 'navigate', this._onSubviewNavigate);
-        this._documentFragment.appendChild(view.el);
-      }
-
-      this.$container.append(this._documentFragment);
-
-      for (index = 0; index < views.length; ++index) {
-        view = views[index];
-
-        if (view instanceof PromenadeView) {
-          view.invalidateAttachmentState();
-        }
-      }
+      this._insertBefore(views, null, options);
 
       this.subviews = this.subviews.concat(views);
     },
@@ -140,27 +121,21 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // exceeds the length of the current set of ``subviews``, the ``view`` is
     // appended. If a list of ``views`` is provided, each ``view`` is inserted
     // in order starting at the provided ``index``.
-    insertAt: function(views, at) {
-      var PromenadeView = require('promenade/view');
+    insertAt: function(views, at, options) {
       var sibling = this.subviews[at];
-      var view;
-      var index;
 
       if (!_.isArray(views)) {
         views = [views];
       }
 
       if (!sibling) {
-        this.add(views);
+        this.add(views, options);
         return;
       }
 
-      for (index = 0; index < views.length; ++index) {
-        view = views[index];
-        sibling.$el.before(view.$el);
-      }
+      this._insertBefore(views, sibling.el, options);
 
-      views.unshift(index, 0);
+      views.unshift(views.length, 0);
 
       this.subviews.splice.apply(this.subviews, views);
     },
@@ -168,12 +143,12 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // This is a wrapper for the most common subview insertion operation. When
     // called, the current set of ``subviews`` is removed, and the new set of
     // ``views`` provided are added.
-    show: function(views) {
+    show: function(views, options) {
       var PromenadeView = require('promenade/view');
 
       this.empty();
 
-      this.add(views);
+      this.add(views, options);
     },
 
     // When called, all ``subviews`` will be rendered. If ``recursive`` is
@@ -189,6 +164,56 @@ define(['promenade/object', 'promenade/view', 'underscore'],
           view.render();
         }
       }, this);
+    },
+
+    _insertBefore: function(views, before, options) {
+      var PromenadeView = require('promenade/view');
+      var async = options ? options.async !== false : true;
+      var render = options ? options.render !== false : true;
+      var view;
+      var index;
+
+      for (index = 0; index < views.length; ++index) {
+        view = views[index];
+
+        this.listenTo(view, 'navigate', this._onSubviewNavigate);
+        this._documentFragment.appendChild(view.el);
+      }
+
+      if (this.$container.length) {
+        if (before) {
+          this.$container.get(0).insertBefore(this._documentFragment, before);
+        } else {
+          this.$container.get(0).appendChild(this._documentFragment);
+        }
+      }
+
+      for (index = 0; index < views.length; ++index) {
+        view = views[index];
+
+        if (view instanceof PromenadeView) {
+          view.invalidateAttachmentState();
+        }
+
+        if (!render) {
+          continue;
+        }
+
+        if (async) {
+          if (view instanceof PromenadeView) {
+            // Wait for parent's render queue to finish to the current tail..
+            view.pushQueue(this.superview.queueTailCompletes('render'), 'render');
+          }
+
+          // Set parent's tail to the completion of this child's render queue..
+          this.superview.pushQueue(view.asyncRender ?
+                                       view.asyncRender() :
+                                       _.bind(view.render, view),
+                                   'render');
+        } else {
+          view.render();
+        }
+      }
     },
 
     _onSubviewNavigate: function(href, options) {

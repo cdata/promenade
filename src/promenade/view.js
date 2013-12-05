@@ -155,7 +155,9 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     },
 
     asyncRender: function() {
-      return this.pushQueue(this.render, 'render');
+      this.pushQueue(this.tick(this.render), 'render');
+
+      return this.queueCompletes('render');
     },
 
     // Model lookup has been formalized so that there are distinct rules for
@@ -221,16 +223,6 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this.trigger('serialize', data);
 
       return data;
-    },
-
-    getRenderQueue: function() {
-      return this.tick(_.bind(function() {
-        return this.queueCompletes('render');
-      }, this));
-    },
-
-    pushRenderQueue: function(fn) {
-      return this.pushQueue(_.bind(fn, this), 'render');
     },
 
     invalidateAttachmentState: function() {

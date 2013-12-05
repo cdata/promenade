@@ -6,13 +6,13 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-requirejs');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-mocha-phantom-hack');
+  grunt.loadNpmTasks('grunt-mocha');
   grunt.loadNpmTasks('grunt-docco2');
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('bower.json'),
     watch: {
-      javascripts: {
+      build: {
         files: [
           'src/**/*.js'
         ],
@@ -79,7 +79,13 @@ module.exports = function(grunt) {
       all: ['src/**/*.js', '!src/support/*.js', 'test/' + project + '/**/*.js']
     },
     mocha: {
-      all: ['test/index.html']
+      all: {
+        src: ['test/index.html'],
+        options: {
+          //reporter: 'Nyan',
+          log: true
+        }
+      }
     }
   });
 

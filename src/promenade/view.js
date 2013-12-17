@@ -34,6 +34,8 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this._loadingStack = 0;
 
       this._ensureRegions();
+
+      this._decorateElement();
     },
 
     defaultDelegationTargets: ['model', 'collection', 'self'],
@@ -282,6 +284,29 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       if (--this._loadingStack === 0) {
         this.$el.removeClass('loading');
+      }
+    },
+
+    _decorateElement: function() {
+      var model;
+      var type;
+      var id;
+
+      if (!this.hasModel()) {
+        return;
+      }
+
+      model = this.getModel();
+
+      type = _.result(model, 'type');
+      id = _.result(model, 'id');
+
+      if (id || id === 0) {
+        this.$el.attr('data-model-id', id);
+      }
+
+      if (type) {
+        this.$el.attr('data-type', type);
       }
     },
 

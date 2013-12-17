@@ -26,38 +26,22 @@ define(['promenade', 'promenade/queue'],
       });
 
       describe('and tick is called', function() {
-        var clock;
-
-        beforeEach(function() {
-          clock = sinon.useFakeTimers();
-        });
-
-        afterEach(function() {
-          clock.restore();
-        });
-
-        it('returns a function that calls back asynchronously', function() {
+        it('returns a function that calls back asynchronously', function(done) {
           var calls = 0;
           // We need to use an interval because Sinon won't properly stub
           // requestAnimationFrame.
           var interval = 20;
+          var date = Date.now();
           var tickFn = queueObject.tick(function() {
-            ++calls;
+            try {
+              expect(Date.now() - date).to.be.greaterThan(19);
+              done();
+            } catch(e) {
+              done(e);
+            }
           }, interval);
 
-
-          clock.tick(interval);
-          expect(calls).to.be(0);
-
           tickFn();
-          expect(calls).to.be(0);
-          clock.tick(interval);
-          expect(calls).to.be(1);
-
-          tickFn();
-          expect(calls).to.be(1);
-          clock.tick(interval);
-          expect(calls).to.be(2);
         });
       });
 
@@ -88,16 +72,13 @@ define(['promenade', 'promenade/queue'],
           expect(queueObject.getQueue('foo')).to.be.ok();
         });
         describe('that has queued operations', function() {
-          var clock;
           var tick;
           var interval;
           var firstOperation;
           var secondOperation;
           var thirdOperation;
 
-          beforeEach(function() {
-            clock = sinon.useFakeTimers();
-
+          beforeEach(function(done) {
             firstOperation = sinon.spy();
             secondOperation = sinon.spy();
             thirdOperation = sinon.spy();
@@ -111,19 +92,12 @@ define(['promenade', 'promenade/queue'],
             }, interval));
             queueObject.pushQueue(queueObject.tick(function() {
               thirdOperation();
+              done();
             }, interval));
-          });
-
-          afterEach(function() {
-            clock.restore();
           });
 
           it('runs the pushed operation after all previously queued operations',
              function() {
-            expect(thirdOperation.callCount).to.be(0);
-
-            clock.tick(100);
-
             expect(thirdOperation.callCount).to.be(1);
 
             expect(firstOperation.calledBefore(secondOperation)).to.be(true);
@@ -137,10 +111,6 @@ define(['promenade', 'promenade/queue'],
               queueObject.queueCompletes().then(function() {
                 completionCount++;
               });
-
-              expect(completionCount).to.be(0);
-
-              clock.tick(100);
 
               expect(completionCount).to.be(1);
             });

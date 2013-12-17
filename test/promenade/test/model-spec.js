@@ -308,7 +308,7 @@ define(['promenade', 'promenade/model'],
 
           model.on('change', function() {
             ++changeTriggeredCount;
-          })
+          });
 
           subset.fetch();
           server.respond();
@@ -322,15 +322,15 @@ define(['promenade', 'promenade/model'],
 
           model.on('resource', function() {
             ++resourceTriggeredCount;
-          })
+          });
 
           subset.fetch();
           server.respond();
 
           expect(resourceTriggeredCount).to.be(1);
         });
-      })
-    })
+      });
+    });
 
 
     describe('when a namespace is declared', function() {

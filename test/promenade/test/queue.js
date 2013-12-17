@@ -40,14 +40,8 @@ define(['promenade', 'promenade/queue'],
           var calls = 0;
           // We need to use an interval because Sinon won't properly stub
           // requestAnimationFrame.
-          //
-          window.setTimeout = function() {
-            console.log('NOOP');
-          };
-
           var interval = 20;
           var tickFn = queueObject.tick(function() {
-            console.log('tick fn');
             ++calls;
           }, interval);
 
@@ -58,7 +52,6 @@ define(['promenade', 'promenade/queue'],
           tickFn();
           expect(calls).to.be(0);
           clock.tick(interval);
-          console.log('end of test');
           expect(calls).to.be(1);
 
           tickFn();

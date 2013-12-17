@@ -243,6 +243,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
 
       if (resourceAdded) {
         this.trigger('resource', this);
+        this.trigger('change', this);
       }
 
       // Once our attributes being set have been formatted appropriately,

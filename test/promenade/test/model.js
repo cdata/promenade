@@ -13,6 +13,8 @@ define(['promenade', 'promenade/model'],
       server = sinon.fakeServer.create();
       server.respondWith('GET', '/api/foo',
                          [200, {}, '{"foo":{},"bar":{}}']);
+      server.respondWith('GET', '/api/foos',
+                         [200, {}, '[{ "id": 1 }, { "id": 2 }]']);
 
       MyModel = Model.extend({
         url: '/api/foo',
@@ -286,6 +288,49 @@ define(['promenade', 'promenade/model'],
         });
       });
     });
+
+    describe('when a model is updated from a resource url', function() {
+      var collection;
+      var model;
+
+      beforeEach(function() {
+        collection = new Promenade.Collection([
+          { id: 1 }
+        ]);
+        model = collection.at(0);
+      });
+
+      describe('that it has never been updated from before', function() {
+
+        it('triggers a change event on itself', function() {
+          var subset = collection.resource('/api/foos');
+          var changeTriggeredCount = 0;
+
+          model.on('change', function() {
+            ++changeTriggeredCount;
+          })
+
+          subset.fetch();
+          server.respond();
+
+          expect(changeTriggeredCount).to.be(1);
+        });
+
+        it('triggers a resource event on itself', function() {
+          var subset = collection.resource('/api/foos');
+          var resourceTriggeredCount = 0;
+
+          model.on('resource', function() {
+            ++resourceTriggeredCount;
+          })
+
+          subset.fetch();
+          server.respond();
+
+          expect(resourceTriggeredCount).to.be(1);
+        });
+      })
+    })
 
 
     describe('when a namespace is declared', function() {

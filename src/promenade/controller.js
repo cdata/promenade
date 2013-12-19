@@ -17,13 +17,13 @@ define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation'],
       this.app = options && options.app;
 
       // Routes are defined immediately.
-      this.routes = {};
+      this.routes = [];
       this.defineRoutes.call(this._getDefinitionContext());
 
       // A ``_routeMatchers`` list is created to support observing state change
       // events based on navigation behavior.
-      this._routeMatchers = _.map(this.routes, function(handler, route) {
-        return this.app._routeToRegExp(route);
+      this._routeMatchers = _.map(this.routes, function(route) {
+        return this.app._routeToRegExp(route.fragment);
       }, this);
 
       this._state = Controller.state.INACTIVE;
@@ -109,28 +109,31 @@ define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation'],
       var generators = state.generators;
 
       if (handler) {
-        this.routes[fragment] = _.bind(function() {
-          var args = Array.prototype.slice.call(arguments);
-          var params;
-          // All arguments to the ``route`` handler (typically in the form of
-          // ``String`` values) are mapped to resources by using 'generator'
-          // functions defined by the definition context.
-          params = _.map(generators, function(generator) {
-            if (generator.consumesArgument) {
-              return generator(args.shift());
-            }
+        this.routes.unshift({
+          fragment: fragment,
+          handler: _.bind(function() {
+            var args = Array.prototype.slice.call(arguments);
+            var params;
+            // All arguments to the ``route`` handler (typically in the form of
+            // ``String`` values) are mapped to resources by using 'generator'
+            // functions defined by the definition context.
+            params = _.map(generators, function(generator) {
+              if (generator.consumesArgument) {
+                return generator(args.shift());
+              }
 
-            return generator();
-          }).concat(args);
+              return generator();
+            }).concat(args);
 
-          this.setActive();
+            this.setActive();
 
-          $.when.apply($, params).then(_.bind(function() {
-            if (this.isActive()) {
-              this[handler].apply(this, arguments);
-            }
-          }, this));
-        }, this);
+            $.when.apply($, params).then(_.bind(function() {
+              if (this.isActive()) {
+                this[handler].apply(this, arguments);
+              }
+            }, this));
+          }, this)
+        });
       }
 
       // When the route is 'compound', we callback with a modified definition

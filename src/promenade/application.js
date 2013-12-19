@@ -317,14 +317,14 @@ define(['backbone', 'underscore', 'jquery', 'require'],
         // When a ``Controller`` is instantiated, it defines the ``routes`` that
         // it can support. These ``routes`` are each mapped to a ``route`` in
         // ``Application``, which is a ``Backbone.Router`` derivative.
-        _.each(controller.routes, function(handler, route) {
-          this.route(route, route, _.bind(function() {
+        _.each(controller.routes, function(route) {
+          this.route(route.fragment, route.fragment, _.bind(function() {
             _.each(this.controllers, function(_controller, index) {
-              if (_controller !== controller && !_controller.handlesRoute(route)) {
+              if (_controller !== controller && !_controller.handlesRoute(route.fragment)) {
                 _controller.setInactive();
               }
             });
-            handler.apply(controller, arguments);
+            route.handler.apply(controller, arguments);
           }, this));
         }, this);
 

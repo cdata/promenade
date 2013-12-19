@@ -27,6 +27,8 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           this.index('lur', 'receivesCollection', function() {
             this.show('bing', 'receivesCollectionAndModel', { type: 'lur' });
           });
+
+          this.index('lur', 'neverCalled');
         },
         foo: function() {},
         bar: function() {},
@@ -36,7 +38,8 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         receivesBarAndModel: function(bar, model) {},
         receivesModelAndModel: function(modelOne, modelTwo) {},
         receivesCollection: function(collection) {},
-        receivesCollectionAndModel: function(collection, model) {}
+        receivesCollectionAndModel: function(collection, model) {},
+        neverCalled: function() {}
       });
       MyModel = Promenade.Model.extend({
         namespace: 'foo',
@@ -91,7 +94,7 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         for (var routeString in myController.routes) {
           ++count;
         }
-        expect(count).to.be.eql(9);
+        expect(count).to.be.eql(10);
       });
     });
 
@@ -108,6 +111,7 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           sinon.spy(app.controllers[1], 'deactivate');
           sinon.spy(app.controllers[0], 'receivesCollection');
           sinon.spy(app.controllers[0], 'receivesCollectionAndModel');
+          sinon.spy(app.controllers[0], 'neverCalled');
 
           app.lurCollection.reset([{
             id: '1'
@@ -143,6 +147,16 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           app.navigate('grog', { trigger: true });
           expect(app.controllers[0].deactivate.callCount).to.be(1);
         });
+
+        it('only calls the first matched route', function() {
+          expect(app.controllers[0].neverCalled.callCount).to.be(0);
+          expect(app.controllers[0].receivesCollection.callCount).to.be(0);
+
+          app.navigate('lur', { trigger: true });
+
+          expect(app.controllers[0].neverCalled.callCount).to.be(0);
+          expect(app.controllers[0].receivesCollection.callCount).to.be(1);
+        })
 
         it('always deactivates old controllers before activating new ones', function() {
           app.navigate('foo/bar', { trigger: true });

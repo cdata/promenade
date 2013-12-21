@@ -135,6 +135,22 @@ define(['promenade/view', 'promenade/collection'],
       }
     },
 
+    _decorateElement: function() {
+      var collection;
+      var type;
+
+      if (!this.collection) {
+        return;
+      }
+
+      collection = this.getCollection();
+      type = _.result(collection, 'type');
+
+      if (type) {
+        this.$el.attr('data-type', type);
+      }
+    },
+
     // Subviews in a ``CollectionView`` are tracked by the ``cid`` of the models
     // that represent them. This allows us to look up a ``View`` instance by
     // a model instance.

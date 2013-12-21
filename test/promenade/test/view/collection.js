@@ -9,7 +9,6 @@ define(['promenade', 'promenade/view/collection'],
     });
 
     describe('when instantiated', function() {
-
       var myCollection;
       var MyCollectionView;
       var myCollectionView;
@@ -66,6 +65,12 @@ define(['promenade', 'promenade/view/collection'],
           });
         });
 
+        describe('that has no type', function() {
+          it('adds no data attribute for type', function(){
+            expect(myCollectionView.$el.attr('data-type')).to.be(undefined);
+          });
+        });
+
         describe('that is empty', function() {
           beforeEach(function() {
             myCollection.reset();
@@ -108,6 +113,41 @@ define(['promenade', 'promenade/view/collection'],
             expect(newNumberOfViews).to.be(numberOfViews + 1);
           });
         });
+      });
+    });
+
+    describe('when instantiated with a model that has a type', function() {
+      var BarModel;
+      var MyCollection;
+      var myCollection;
+      var MyCollectionView;
+      var myCollectionView;
+
+      beforeEach(function() {
+        BarModel = Promenade.Model.extend({
+          type: 'bar'
+        });
+
+        MyCollection = Promenade.Collection.extend({
+          namespace: 'bars',
+          model: BarModel
+        });
+
+        myCollection = new MyCollection([{ val: 1 },
+          { val: 2 },
+          { val: 3 }]);
+
+        MyCollectionView = CollectionView.extend({
+          loadingClass: Promenade.View
+        });
+
+        myCollectionView = new MyCollectionView({
+          collection: myCollection
+        });
+      });
+
+      it('adds collection type data attributes to the root element', function() {
+        expect(myCollectionView.$el.attr('data-type')).to.be('bar');
       });
     });
   });

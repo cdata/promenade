@@ -292,7 +292,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       var type;
       var id;
 
-      if (!this.hasModel()) {
+      if (!this.model) {
         return;
       }
 

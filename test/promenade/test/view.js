@@ -30,20 +30,25 @@ define(['backbone', 'promenade', 'promenade/view'],
       expect(View).to.be.ok();
     });
 
-    describe('when created', function() {
-      describe('with a model', function() {
-        it('adds model data attributes to the root element', function() {
-          var myView = new MyView({
-            model: new Promenade.Model({
-              id: 1,
-              type: 'model',
-              foo: 'bar'
-            })
-          });
+    describe('when instantiated', function() {
+      var myModel;
+      var myView;
 
-          expect(myView.$el.attr('data-model-id')).to.be('1');
-          expect(myView.$el.attr('data-type')).to.be('model');
+      beforeEach(function() {
+        myModel = new Promenade.Model({
+          id: 1,
+          type: 'model',
+          foo: 'bar'
         });
+
+        myView = new MyView({
+          model: myModel
+        });
+      });
+
+      it('adds model data attributes to the root element', function() {
+        expect(myView.$el.attr('data-model-id')).to.be('1');
+        expect(myView.$el.attr('data-type')).to.be('model');
       });
     });
 

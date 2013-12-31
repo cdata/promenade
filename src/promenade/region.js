@@ -63,7 +63,6 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // subviews from the ``Region``. If ``views`` can be detached in a way that
     // does not unset event bindings, it will be.
     remove: function(views) {
-      var PromenadeView = require('promenade/view');
       var view;
       var index;
 
@@ -144,8 +143,6 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // called, the current set of ``subviews`` is removed, and the new set of
     // ``views`` provided are added.
     show: function(views, options) {
-      var PromenadeView = require('promenade/view');
-
       this.empty();
 
       this.add(views, options);

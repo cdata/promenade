@@ -38,7 +38,6 @@ define(['backbone', 'underscore'],
     _toggleDelegation: function(enabled) {
       var types;
       var type;
-      var index;
       var target;
       var maps;
 
@@ -46,7 +45,7 @@ define(['backbone', 'underscore'],
 
       types = this.delegationTargets;
 
-      for (index = 0; index < types.length; ++index) {
+      for (var index = 0, len = types.length; index < len; ++index) {
         type = types[index];
         target = type[0].toUpperCase() + type.slice(1);
 
@@ -69,16 +68,14 @@ define(['backbone', 'underscore'],
     _setEventMapsForTarget: function(maps, target, enabled) {
       var operation = enabled ? 'delegate' : 'undelegate';
       var eventName;
-      var index;
       var map;
       var handler;
-      var _index;
 
       if (!maps || !target || !operation) {
         return;
       }
 
-      for (index = 0; index < maps.length; ++index) {
+      for (var index = 0, len = maps.length; index < len; ++index) {
         if (!(maps[index] in this)) {
           continue;
         }
@@ -89,7 +86,7 @@ define(['backbone', 'underscore'],
           handler = map[eventName];
 
           if (_.isArray(handler)) {
-            for (_index = 0; _index < handler.length; ++_index) {
+            for (var _index = 0, _len = handler.length; _index < _len; ++_index) {
               this[operation](target, eventName, this[handler[_index]]);
             }
           } else if (_.isString(handler)) {

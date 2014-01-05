@@ -63,7 +63,7 @@ define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation'],
     // Navigation events are observed to determine when it is appropriate to
     // transition the state of the ``Controller``.
     handlesRoute: function(route) {
-      for (var index = 0; index < this._routeMatchers.length; ++index) {
+      for (var index = 0, len = this._routeMatchers.length; index < len; ++index) {
         if (this._routeMatchers[index].test(route)) {
           return true;
         }

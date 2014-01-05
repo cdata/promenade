@@ -112,9 +112,8 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
       var url = _.result(this, 'urlRoot');
       var others = Array.prototype.slice.call(arguments);
       var other;
-      var index;
 
-      for (index = 0; index < others.length; ++index) {
+      for (var index = 0, len = others.length; index < len; ++index) {
         other = others[index];
         url += '/' + _.result(other, 'urlFragment');
       }

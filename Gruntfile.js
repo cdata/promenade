@@ -6,8 +6,8 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-requirejs');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-mocha');
   grunt.loadNpmTasks('grunt-docco2');
+  grunt.loadNpmTasks('grunt-karma');
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('bower.json'),
@@ -72,23 +72,20 @@ module.exports = function(grunt) {
         }
       }
     },
+    karma: {
+      promenade: {
+        configFile: 'karma.conf.js',
+        singleRun: true
+      }
+    },
     docco: {
       docs: ['lib/' + project + '.js']
     },
     jshint: {
       all: ['src/**/*.js', '!src/support/*.js', 'test/' + project + '/**/*.js']
-    },
-    mocha: {
-      all: {
-        src: ['test/index.html'],
-        options: {
-          //reporter: 'Nyan',
-          log: true
-        }
-      }
     }
   });
 
-  grunt.registerTask('test', ['mocha', 'jshint']);
+  grunt.registerTask('test', ['karma', 'jshint']);
   grunt.registerTask('build', ['requirejs', 'docco']);
 };

@@ -131,7 +131,7 @@ define(['backbone', 'promenade', 'promenade/collection'],
           expect(models[2]).to.be(collection.get(2));
         });
 
-        it('returns undefined when getting by non-existant model instance', 
+        it('returns undefined when getting by non-existant model instance',
            function() {
           var model = collection.get(doesNotExist);
 

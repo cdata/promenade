@@ -1,0 +1,7 @@
+dependencies:
+  post:
+    - npm install -g bower
+    - bower cache clean -f
+    - bower install
+    - grunt build
+

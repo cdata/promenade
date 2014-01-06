@@ -126,11 +126,9 @@ define(['promenade', 'promenade/region'],
 
       describe('when a view is shown', function() {
         var someView;
-        var clock;
 
         beforeEach(function() {
           Promenade.View.prototype.defaultSleep = 20;
-          clock = sinon.useFakeTimers();
 
           someView = new MyView();
 
@@ -143,7 +141,6 @@ define(['promenade', 'promenade/region'],
 
         afterEach(function() {
           Promenade.View.prototype.defaultSleep = 0;
-          clock.restore();
         });
 
         it('replaces all current views in the region', function() {
@@ -162,11 +159,10 @@ define(['promenade', 'promenade/region'],
             sinon.spy(grandchildView, 'render');
           });
 
-          it('defers the superview render queue and renders in order', function() {
+          it('defers the superview render queue and renders in order', function(done) {
             var parentCompletionCount = 0;
             var childCompletionCount = 0;
             var grandchildCompletionCount = 0;
-            var tick = 0;
             var grandchildCompletionSpy = sinon.spy(function() {
               ++grandchildCompletionCount;
             });
@@ -184,23 +180,18 @@ define(['promenade', 'promenade/region'],
 
             grandchildView.queueCompletes('render').then(grandchildCompletionSpy);
 
-            while (tick < 80) {
-              expect(grandchildView.render.callCount).to.be(0);
-              expect(parentCompletionCount).to.be(0);
-              expect(childCompletionCount).to.be(0);
-              expect(grandchildCompletionCount).to.be(0);
-
-              tick = clock.tick(20);
-            }
-
-            clock.tick(20);
-
-            expect(parentCompletionCount).to.be(1);
-            expect(childCompletionCount).to.be(1);
-            expect(grandchildCompletionCount).to.be(1);
-            expect(grandchildView.render.callCount).to.be(1);
-
-            expect(grandchildView.render.calledBefore(grandchildCompletionSpy)).to.be(true);
+            myView.queueCompletes('render').then(function() {
+              try {
+                expect(parentCompletionCount).to.be(1);
+                expect(childCompletionCount).to.be(1);
+                expect(grandchildCompletionCount).to.be(1);
+                expect(grandchildView.render.callCount).to.be(1);
+                expect(grandchildView.render.calledBefore(grandchildCompletionSpy)).to.be(true);
+                done();
+              } catch(e) {
+                done(e);
+              }
+            });
           });
         });
       });

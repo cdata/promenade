@@ -156,7 +156,7 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
 
           expect(app.controllers[0].neverCalled.callCount).to.be(0);
           expect(app.controllers[0].receivesCollection.callCount).to.be(1);
-        })
+        });
 
         it('always deactivates old controllers before activating new ones', function() {
           app.navigate('foo/bar', { trigger: true });

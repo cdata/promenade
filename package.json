@@ -15,7 +15,11 @@
     "grunt-contrib-jshint": "~0.6.0",
     "grunt-docco2": "~0.1.1",
     "grunt-mocha-phantomjs": "~0.3.0",
-    "grunt-mocha": "~0.4.1"
+    "grunt-mocha": "~0.4.1",
+    "karma-mocha": "~0.1.1",
+    "karma-requirejs": "~0.2.1",
+    "grunt-karma": "~0.6.2",
+    "karma": "~0.10.9"
   },
   "scripts": {
     "test": "grunt test"

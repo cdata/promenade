@@ -40,12 +40,14 @@ define(['backbone', 'underscore'],
       var type;
       var target;
       var maps;
+      var index;
+      var length;
 
       this._ensureDelegation();
 
       types = this.delegationTargets;
 
-      for (var index = 0, len = types.length; index < len; ++index) {
+      for (index = 0, length = types.length; index < length; ++index) {
         type = types[index];
         target = type[0].toUpperCase() + type.slice(1);
 
@@ -70,12 +72,16 @@ define(['backbone', 'underscore'],
       var eventName;
       var map;
       var handler;
+      var index;
+      var _index;
+      var length;
+      var _length;
 
       if (!maps || !target || !operation) {
         return;
       }
 
-      for (var index = 0, len = maps.length; index < len; ++index) {
+      for (index = 0, length = maps.length; index < length; ++index) {
         if (!(maps[index] in this)) {
           continue;
         }
@@ -86,7 +92,7 @@ define(['backbone', 'underscore'],
           handler = map[eventName];
 
           if (_.isArray(handler)) {
-            for (var _index = 0, _len = handler.length; _index < _len; ++_index) {
+            for (_index = 0, _length = handler.length; _index < _length; ++_index) {
               this[operation](target, eventName, this[handler[_index]]);
             }
           } else if (_.isString(handler)) {

@@ -82,9 +82,15 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
 
     isSparse: function() {
       var type = _.result(this, 'type');
+      var defaults = _.result(this, 'defaults');
 
       for (var attr in this.attributes) {
         if (attr !== 'id' && attr !== 'type') {
+          if (defaults && defaults.hasOwnProperty(attr) &&
+              defaults[attr] === this.attributes[attr]) {
+            continue;
+          }
+
           return false;
         }
       }

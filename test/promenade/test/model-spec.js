@@ -33,7 +33,11 @@ define(['promenade', 'promenade/model'],
       AnotherNamespacedModel = Model.extend({
         urlRoot: '/api',
         type: 'baz',
-        namespace: 'bazes'
+        namespace: 'bazes',
+        defaults: {
+          foo: 'foo',
+          bar: true
+        }
       });
 
       ThirdNamespacedModel = Model.extend({
@@ -50,6 +54,24 @@ define(['promenade', 'promenade/model'],
     it('is defined', function() {
       expect(Promenade.Model).to.be.ok();
       expect(Model).to.be.ok();
+    });
+
+    describe('when checking for sparsity', function() {
+      describe('and the only attributes are type and id', function() {
+        it('is sparse', function() {
+          var model = new MyNamespacedModel({ type: 'bar', id: 1});
+
+          expect(model.isSparse()).to.be(true);
+        });
+
+        describe('or additional attributes match the defaults', function() {
+          it('is sparse', function() {
+            var model = new AnotherNamespacedModel({ type: 'baz', id: 1, foo: 'foo', bar: true });
+
+            expect(model.isSparse()).to.be(true);
+          });
+        });
+      });
     });
 
     describe('when fetching', function() {

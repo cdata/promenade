@@ -66,6 +66,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       var PromenadeView = require('promenade/view');
       var view;
       var index;
+      var length;
 
       if (!views) {
         return;
@@ -75,7 +76,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         views = [views];
       }
 
-      for (index = 0; index < views.length; ++index) {
+      for (index = 0, length = views.length; index < length; ++index) {
         view = views[index];
         view.remove();
         this.stopListening(view, 'navigate', this._onSubviewNavigate);
@@ -88,6 +89,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       var PromenadeView = require('promenade/view');
       var view;
       var index;
+      var length;
 
       if (!views) {
         return;
@@ -97,7 +99,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         views = [views];
       }
 
-      for (index = 0; index < views.length; ++index) {
+      for (index = 0, length = views.length; index < length; ++index) {
         view = views[index];
 
         if (view instanceof PromenadeView) {
@@ -172,8 +174,9 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       var render = options ? options.render !== false : true;
       var view;
       var index;
+      var length;
 
-      for (index = 0; index < views.length; ++index) {
+      for (index = 0, length = views.length; index < length; ++index) {
         view = views[index];
 
         this.listenTo(view, 'navigate', this._onSubviewNavigate);
@@ -188,7 +191,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
         }
       }
 
-      for (index = 0; index < views.length; ++index) {
+      for (index = 0, length = views.length; index < length; ++index) {
         view = views[index];
 
         if (view instanceof PromenadeView) {

@@ -121,18 +121,19 @@ define(['backbone', 'underscore', 'jquery', 'require'],
     camelize: function(string) {
       var parts = string.split('_');
       var part;
-      var i;
+      var index;
+      var length;
 
       string = '';
 
-      for (i = 0; i < parts.length; ++i) {
-        part = parts[i].toLowerCase();
+      for (index = 0, length = parts.length; index < length; ++index) {
+        part = parts[index].toLowerCase();
 
         if (!part) {
           continue;
         }
 
-        if (i !== 0) {
+        if (index !== 0) {
           part = part.substr(0, 1).toUpperCase() +
                  part.substr(1, part.length - 1);
         }

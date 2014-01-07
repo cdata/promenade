@@ -83,8 +83,9 @@ define(['backbone', 'underscore'],
     },
 
     _connectToSuperset: function() {
-      var index;
       var resource;
+      var index;
+      var length;
 
       // The ``'add'``, ``'remove'`` and ``'reset'`` events are listened to by
       // the ``subset`` on the superset ``Collection`` instance so that changes
@@ -101,7 +102,7 @@ define(['backbone', 'underscore'],
         this.listenTo(this.superset, 'sync', this._onSupersetSync);
         this.listenTo(this.superset, 'resource', this._onSupersetChange);
 
-        for (index = 0; index < this.dependencies.length; ++index) {
+        for (index = 0, length = this.dependencies.length; index < length; ++index) {
           resource = this.app.getResource(this.dependencies[index]);
 
           if (!resource) {
@@ -125,13 +126,14 @@ define(['backbone', 'underscore'],
     },
 
     _disconnectFromSuperset: function() {
-      var index;
       var resource;
+      var index;
+      var length;
 
       if (this.superset && this.isConnected()) {
         this.stopListening(this.superset);
 
-        for (index = 0; index < this.dependencies.length; ++index) {
+        for (index = 0, length = this.dependencies.length; index < length; ++index) {
           resource = this.app.getResource(this.dependencies[index]);
 
           if (!resource) {

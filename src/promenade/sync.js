@@ -151,7 +151,8 @@ define(['backbone', 'underscore'],
       this._syncingStack = this._syncingStack || 0;
 
       if (_.result(this, 'canSync') === false ||
-          _.result(this, 'isSparse') === false) {
+          (_.result(this, 'isSparse') === false &&
+           _.result(this, 'isNew') === false)) {
         eventuallySyncs.resolve(this);
       } else {
         this.once('sync', function() {

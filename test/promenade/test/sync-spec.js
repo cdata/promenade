@@ -12,6 +12,8 @@ define(['promenade', 'promenade/sync'],
       server = sinon.fakeServer.create();
       server.respondWith('GET', '/api/foo',
                          [200, {}, '{"foo":{},"bar":{}}']);
+      server.respondWith('POST', '/api/foo',
+                         [200, {}, '{"id": 1, "foo":{},"bar":{}}']);
       server.respondWith('GET', '/api/paginated',
                          [200, {
                            'X-Upper-Index': '5',
@@ -57,6 +59,26 @@ define(['promenade', 'promenade/sync'],
 
           expect(resolvedCount).to.be(1);
         });
+
+        describe('that involves creating a model from a collection', function() {
+          it('resolves the sync promise after the created model is saved', function() {
+            var aCollection = new ACollection();
+            var aModel = aCollection.create({ foo: 'bar' }, {
+              url: '/api/foo'
+            });
+            var syncCount = 0;
+
+            aModel.syncs().then(function() {
+              ++syncCount;
+            });
+
+            expect(syncCount).to.be(0);
+
+            server.respond();
+
+            expect(syncCount).to.be(1);
+          });
+        });
       });
 
       describe('when no network operation is in flight', function() {
@@ -80,6 +102,11 @@ define(['promenade', 'promenade/sync'],
             AModel.prototype.isSparse = function() {
               return false;
             };
+            aModel = new AModel({ id: 1 });
+          });
+
+          afterEach(function() {
+            AModel.prototype.isSparse = Promenade.Model.prototype.isSparse;
             aModel = new AModel();
           });
 

@@ -32,6 +32,7 @@ module.exports = function(config) {
     // possible values: 'dots', 'progress', 'junit', 'growl', 'coverage'
     reporters: ['progress'],
 
+    hostname: '0.0.0.0',
 
     // web server port
     port: 9876,

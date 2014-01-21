@@ -4,10 +4,10 @@
   define(['promenade/view', 'promenade/view/collection', 'promenade/view/form',
           'promenade/model', 'promenade/controller', 'promenade/application',
           'promenade/region', 'promenade/object', 'promenade/collection',
-          'promenade/delegation', 'promenade/sync', 'promenade/queue', 'promenade/inflector'],
+          'promenade/delegation', 'promenade/sync', 'promenade/queue', 'promenade/inflector', 'promise'],
          function(View, CollectionView, FormView, Model,  Controller,
                   Application, Region, PromenadeObject, Collection,
-                  DelegationApi, SyncApi, QueueApi, InflectorApi) {
+                  DelegationApi, SyncApi, QueueApi, InflectorApi, Promise) {
     return {
       Model: Model,
       Collection: Collection,
@@ -21,7 +21,8 @@
       Sync: SyncApi,
       Queue: QueueApi,
       Inflector: InflectorApi,
-      'Object': PromenadeObject
+      'Object': PromenadeObject,
+      Promise: Promise
     };
   });
 })();

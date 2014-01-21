@@ -275,6 +275,39 @@ define(['backbone', 'promenade', 'promenade/view'],
 
       describe('when modelEvents are declared', function() {
 
+        describe('and the model attributes change', function() {
+          it('re-renders the view', function() {
+            var model = new Promenade.Model();
+            var ViewClass = View.extend();
+            var viewInstance = new ViewClass({ model: model });
+
+            sinon.spy(viewInstance, 'render');
+
+            //model.set({ foo: 'foo' });
+            model.set('foo', 'bar');
+
+            expect(viewInstance.render.callCount).to.be(1);
+          });
+
+          describe('with renderOnChange set to false', function() {
+
+            it('does not re-render the view', function() {
+              var model = new Promenade.Model();
+              var ViewClass = View.extend({
+                renderOnChange: false
+              });
+
+              var viewInstance = new ViewClass({ model: model });
+
+              sinon.spy(viewInstance, 'render');
+
+              model.set('foo', 'bar');
+
+              expect(viewInstance.render.callCount).to.be(0);
+            });
+          });
+        });
+
         it('calls a method on the view appropriately', function() {
           var myView;
 

@@ -237,10 +237,12 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       }
     },
 
+    renderOnChange: true,
+
     // By default, a ``View`` will re-render on most manipulation-implying
     // events dispatched by its ``model`` or ``collection``.
     _modelEvents: {
-      'change': 'render',
+      'change': '_onModelChange',
       'before:fetch': '_setLoading',
       'before:save': '_setLoading',
       'before:destroy': '_setLoading',
@@ -256,6 +258,12 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     _selfEvents: {
       'dom:attach': '_bubbleDomAttach',
       'dom:detach': '_bubbleDomDetach'
+    },
+
+    _onModelChange: function() {
+      if (this.renderOnChange === true) {
+        this.render();
+      }
     },
 
     _bubbleDomAttach: function(view) {

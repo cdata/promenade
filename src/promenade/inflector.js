@@ -46,6 +46,11 @@ define(['backbone', 'underscore', 'jquery'],
       pluralize: function (word, count) {
         var usePluralForm = this._isNumberPlural(count);
         var result;
+        var rule;
+        var index;
+        var length;
+        var pattern;
+        var replacement;
 
         this._dictionary = this._dictionary || {};
 
@@ -62,12 +67,15 @@ define(['backbone', 'underscore', 'jquery'],
           return word;
         }
 
-        _.detect(_pluralRules, _.bind(function (rule) {
-          var pattern = rule[0];
-          var replacement = rule[1];
+        for(index=0, length = _pluralRules.length; index < length; index++) {
+          rule = _pluralRules[index];
+          pattern = rule[0];
+          replacement = rule[1];
           result = this._replace(word, pattern, replacement);
-          return result;
-        }, this));
+          if (result) {
+            break;
+          }
+        }
 
         if (result) {
           this._dictionary[word] = result; // add the plural form into the dictionary

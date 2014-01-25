@@ -1,5 +1,5 @@
-define(['backbone', 'underscore', 'jquery', 'require'],
-       function(Backbone, _, $, require) {
+define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
+       function(Backbone, _, $, require, InflectorApi) {
   'use strict';
   // Promenade.Application
   // --------------------
@@ -333,6 +333,8 @@ define(['backbone', 'underscore', 'jquery', 'require'],
       }, this);
     }
   });
+
+  _.extend(Application.prototype, InflectorApi);
 
   return Application;
 });

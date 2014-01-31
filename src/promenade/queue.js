@@ -14,7 +14,7 @@ define(['backbone', 'underscore', 'jquery'],
       // wrap around the value with a promise that resolves the same
       // time the value resolves.
       var deferred = this.defer();
-      this.promiseProvider.when(value).then(deferred.resolve);
+      this.when(value).then(deferred.resolve);
       return _.result(deferred, 'promise');
     },
     when: function() {

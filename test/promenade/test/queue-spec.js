@@ -45,6 +45,43 @@ define(['promenade', 'promenade/queue'],
         });
       });
 
+      describe('and a promise is called', function () {
+        var promise;
+        
+        it('creates a promise', function () {
+          promise = queueObject.promise();
+          expect(promise.then).to.be.a(Function);
+        });
+
+        describe('with a non-promise value', function () {
+          it('resolves immeditately', function() {
+            promise = queueObject.promise('foo');
+            expect(promise.state()).to.be('resolved');
+          });
+        });
+
+        describe('with a promise', function () {
+          var promise2;
+          var defer;
+
+          beforeEach(function () {
+            defer = queueObject.defer();
+            promise2 = defer.promise();
+            promise = queueObject.promise(promise2);
+          });
+
+          it('remains pending state', function () {
+            expect(promise.state()).to.be('pending');
+          });
+
+          it('resolves when the promise is resolved', function() {
+            expect(promise.state()).to.be('pending');
+            defer.resolve('abc');
+            expect(promise.state()).to.be('resolved');
+          });
+        });
+      });
+
       describe('and a queue is looked up', function() {
         it('creates a queue that does not exist', function() {
           var queue = queueObject.getQueue('foo');

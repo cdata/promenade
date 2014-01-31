@@ -11,7 +11,11 @@ define(['backbone', 'underscore', 'jquery'],
       return new this.promiseProvider.Deferred();
     },
     promise: function(value) {
-      return _.result(this.defer().resolve(value), 'promise');
+      // wrap around the value with a promise that resolves the same
+      // time the value resolves.
+      var deferred = this.defer();
+      this.when(value).then(deferred.resolve);
+      return _.result(deferred, 'promise');
     },
     when: function() {
       return this.promiseProvider.when.apply(this.promiseProvider, arguments);
@@ -20,9 +24,13 @@ define(['backbone', 'underscore', 'jquery'],
       return _.bind(function() {
         var tick = this.defer();
         var args = arguments;
+
         var tock = _.bind(function() {
           var result = _.isFunction(fn) ? fn.apply(this, args) : fn;
           var that = this;
+          
+          // wrap the fn in a promise and tie 
+          // tick's resolution upon result's completion
           this.when(result).then(function() {
             tick.resolve();
           });

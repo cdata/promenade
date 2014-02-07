@@ -1,5 +1,5 @@
-define(['promenade/object', 'promenade/view', 'underscore'],
-       function(PromenadeObject, View, _) {
+define(['promenade/object', 'promenade/view', 'underscore', 'promenade/delegation'],
+       function(PromenadeObject, View, _, DelegationApi) {
   'use strict';
   // Promenade.Region
   // ----------------
@@ -10,6 +10,16 @@ define(['promenade/object', 'promenade/view', 'underscore'],
   // ``Region`` inherits from ``Promenade.Object``, and thus is compatible with
   // the ``Backbone.Events`` API.
   var Region = PromenadeObject.extend({
+
+    events: {
+      // The region listens to the before:render and render events of the
+      // ``superview`` in order to determine when it is appropriate to detach
+      // and reattach any ``subviews`` that it contains.
+      '#superview before:render': '_detachSubviews',
+      '#superview render': '_attachSubviews',
+      '#superview dom:attach': '_bubbleDomAttach',
+      '#superview dom:detach': '_bubbleDomDetach',
+    },
 
     // A ``Region`` expects a ``superview`` and ``selector`` to be provided in
     // its options hash. The ``superview`` is a reference to the ``View``
@@ -24,11 +34,7 @@ define(['promenade/object', 'promenade/view', 'underscore'],
       this._documentFragment = document.createDocumentFragment();
       this._resetContainer();
 
-      // The region listens to the before:render and render events of the
-      // ``superview`` in order to determine when it is appropriate to detach
-      // and reattach any ``subviews`` that it contains.
-      this.listenTo(this.superview, 'before:render', this._detachSubviews);
-      this.listenTo(this.superview, 'render', this._attachSubviews);
+      this.activateDelegation();
     },
 
     // It is sometimes useful to be able to quickly reset the jQuery selection
@@ -224,21 +230,55 @@ define(['promenade/object', 'promenade/view', 'underscore'],
     // quickly detach the elements of its ``subviews`` which the DOM is being
     // wiped and re-rendered.
     _detachSubviews: function() {
+      var PromenadeView;
+
+      if (!this.subviews.length) {
+        return;
+      }
+
+      PromenadeView = require('promenade/view');
+
       _.each(this.subviews, function(view) {
-        view.$el.detach();
+        if (view instanceof PromenadeView) {
+          view.detach();
+        } else {
+          view.$el.detach();
+        }
       });
     },
 
     // Once the ``superview`` is re-rendered, the ``$container`` needs to be
     // re-selected and the ``subviews`` need to be re-appended.
     _attachSubviews: function() {
+      var PromenadeView;
+
       this._resetContainer();
 
+      if (!this.subviews.length) {
+        return;
+      }
+
+      PromenadeView = require('promenade/view');
+
       _.each(this.subviews, function(view) {
-        this.$container.append(view.$el);
+        if (view instanceof PromenadeView) {
+          view.attachTo(this.$container);
+        } else {
+          this.$container.append(view.$el);
+        }
       }, this);
+    },
+
+    _bubbleDomAttach: function(view) {
+      _.invoke(this.subviews, 'invalidateAttachmentState');
+    },
+
+    _bubbleDomDetach: function(view) {
+      _.invoke(this.subviews, 'invalidateAttachmentState');
     }
   });
+
+  _.extend(Region.prototype, DelegationApi);
 
   return Region;
 });

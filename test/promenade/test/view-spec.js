@@ -191,7 +191,50 @@ define(['backbone', 'promenade', 'promenade/view'],
         });
       });
 
-      describe('and it is attached to an arbitrary number of parents', function() {
+      describe('while the first view has not yet rendered', function() {
+        beforeEach(function() {
+          myView = new MyView({ model: myModel });
+          document.body.appendChild(myView.el);
+        });
+
+        afterEach(function() {
+          myView.remove();
+        });
+
+        it('does not trigger a dom:attach event', function() {
+          var domAttachEventsTriggered = 0;
+
+          expect(myView.fooRegion.$container.length).to.be(0);
+
+          otherView.on('dom:attach', function() {
+            ++domAttachEventsTriggered;
+          });
+
+          myView.fooRegion.show(otherView);
+
+          expect(domAttachEventsTriggered).to.be(0);
+        });
+
+        describe('and the first view is rendered later', function() {
+          it('does trigger a dom:attach event', function() {
+            var domAttachEventsTriggered = 0;
+
+            otherView.on('dom:attach', function() {
+              ++domAttachEventsTriggered;
+            });
+
+            myView.fooRegion.show(otherView);
+
+            myView.render();
+
+            expect(myView.fooRegion.$container.length).to.be(1);
+
+            expect(domAttachEventsTriggered).to.be(1);
+          });
+        });
+      });
+
+      describe('and it is attached to an arbitrary chain of parents', function() {
         var someIntermediaryView;
 
         beforeEach(function() {
@@ -209,10 +252,10 @@ define(['backbone', 'promenade', 'promenade/view'],
             var domAttachEventsTriggered = 0;
 
             otherView.on('dom:attach', function() {
-              domAttachEventsTriggered++;
+              ++domAttachEventsTriggered;
             });
 
-            myView.attachTo(document.body);
+            myView.attachTo($(document.body));
 
             expect(domAttachEventsTriggered).to.be(1);
           });

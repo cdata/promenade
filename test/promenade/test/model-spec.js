@@ -385,9 +385,15 @@ define(['promenade', 'promenade/model'],
             }).to.throwException();
           });
         });
+
+        describe('and the data is undefined', function () {
+          it('returns an empty hash', function() {
+            var parsed = myModel.parse();
+            expect({}).to.be.eql(parsed);
+          });
+        });
       });
     });
-
 
     describe('with no namespace declared', function() {
       var myModel;

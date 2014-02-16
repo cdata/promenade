@@ -28,8 +28,7 @@ define(['backbone', 'underscore', 'jquery'],
         var tock = _.bind(function() {
           var result = _.isFunction(fn) ? fn.apply(this, args) : fn;
           var that = this;
-          
-          // wrap the fn in a promise and tie 
+          // wrap the fn in a promise and tie
           // tick's resolution upon result's completion
           this.when(result).then(function() {
             tick.resolve();

@@ -84,7 +84,7 @@ define(['promenade/object', 'promenade/view', 'underscore', 'promenade/delegatio
       for (index = 0, length = views.length; index < length; ++index) {
         view = views[index];
         view.remove();
-        this.stopListening(view, 'navigate', this._onSubviewNavigate);
+        this.stopListening(view);
       }
 
       this.subviews = _.difference(this.subviews, views);

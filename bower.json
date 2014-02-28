@@ -3,7 +3,7 @@
   "version": "0.0.11",
   "main": "lib/promenade.js",
   "devDependencies": {
-    "native-promise-polyfill": "https://github.com/cdata/native-promise-polyfill.git",
+    "es-promise-polyfill": "https://github.com/cdata/es-promise-polyfill.git",
     "sinonjs": "~1.7.1",
     "mocha": "~1.12.0",
     "jquery": "~2.0.3",

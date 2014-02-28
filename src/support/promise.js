@@ -1,1 +1,1 @@
-../../bower_components/native-promise-polyfill/native-promise-polyfill.js
+../../bower_components/es-promise-polyfill/es-promise-polyfill.js

@@ -1,36 +1,75 @@
 define(['backbone', 'underscore', 'jquery'],
   function (Backbone, _, $) {
     'use strict';
+    // Promenade.Inflector API
+    // -----------------------
 
-    // Promenade Inflector
+    var pluralRules = [
+      /(quiz)$/i, '$1zes',
+      /^(oxen)$/i, '$1',
+      /^(ox)$/i, '$1en',
+      /(m|l)ice$/i, '$1ice',
+      /(m|l)ouse$/i, '$1ice',
+      /(matr|vert|ind)(?:ix|ex)$/i, '$1ices',
+      /(x|ch|ss|sh)$/i, '$1es',
+      /([^aeiouy]|qu)y$/i, '$1ies',
+      /(hive)$/i, '$1s',
+      /(?:([^f])fe|([lr])f)$/i, '$1$2ves',
+      /sis$/i, 'ses',
+      /([ti])a$/i, '$1a',
+      /([ti])um$/i, '$1a',
+      /(buffal|tomat)o$/i, '$1oes',
+      /(bu)s$/i, '$1ses',
+      /(alias|status)$/i, '$1es',
+      /(octop|vir)i$/i, '$1i',
+      /(octop|vir)us$/i, '$1i',
+      /(ax|test)is$/i, '$1es',
+      /s$/i, 's',
+      /$/, 's'
+    ];
 
-    var _pluralRules = [
-      [/$/, 's'],
-      [/s$/i, 's'],
-      [/(ax|test)is$/i, '$1es'],
-      [/(octop|vir)us$/i, '$1i'],
-      [/(octop|vir)i$/i, '$1i'],
-      [/(alias|status)$/i, '$1es'],
-      [/(bu)s$/i, '$1ses'],
-      [/(buffal|tomat)o$/i, '$1oes'],
-      [/([ti])um$/i, '$1a'],
-      [/([ti])a$/i, '$1a'],
-      [/sis$/i, 'ses'],
-      [/(?:([^f])fe|([lr])f)$/i, '$1$2ves'],
-      [/(hive)$/i, '$1s'],
-      [/([^aeiouy]|qu)y$/i, '$1ies'],
-      [/(x|ch|ss|sh)$/i, '$1es'],
-      [/(matr|vert|ind)(?:ix|ex)$/i, '$1ices'],
-      [/(m|l)ouse$/i, '$1ice'],
-      [/(m|l)ice$/i, '$1ice'],
-      [/^(ox)$/i, '$1en'],
-      [/^(oxen)$/i, '$1'],
-      [/(quiz)$/i, '$1zes']
-    ].reverse();
+    var singularRules = [
+      /(database)s$/, '$1',
+      /(quiz)zes$/, '$1',
+      /(matr)ices$/, '$1ix',
+      /(vert|ind)ices$/, '$1ex',
+      /^(ox)en/, '$1',
+      /(alias|status)es$/, '$1',
+      /(octop|vir)i$/, '$1us',
+      /(cris|ax|test)es$/, '$1is',
+      /(shoe)s$/, '$1',
+      /(o)es$/, '$1',
+      /(bus)es$/, '$1',
+      /([m|l])ice$/, '$1ouse',
+      /(x|ch|ss|sh)es$/, '$1',
+      /(m)ovies$/, '$1ovie',
+      /(s)eries$/, '$1eries',
+      /([^aeiouy]|qu)ies$/, '$1y',
+      /([lr])ves$/, '$1f',
+      /(tive)s$/, '$1',
+      /(hive)s$/, '$1',
+      /([^f])ves$/, '$1fe',
+      /(^analy)ses$/, '$1sis',
+      /((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$/, '$1$2sis',
+      /([ti])a$/, '$1um',
+      /(n)ews$/, '$1ews',
+      /s$/, ''
+    ];
 
-    var _uncountables = ['equipment', 'information', 'rice', 'money', 'species', 'series', 'fish', 'sheep', 'jeans'];
+    var uncountables = {
+      // Uncountables
+      equipment: 'equipment',
+      information: 'information',
+      rice: 'rice',
+      money: 'money',
+      species: 'species',
+      fish: 'fish',
+      sheep: 'sheep',
+      jeans: 'jeans'
+    };
 
-    var irregular = {
+    var pluralDictionary = {
+      // Irregular plurals
       person: 'people',
       man: 'men',
       child: 'children',
@@ -40,55 +79,79 @@ define(['backbone', 'underscore', 'jquery'],
       zombie: 'zombies'
     };
 
+    var singularDictionary = {
+      // Irregular singulars
+      people: 'person',
+      men: 'man',
+      children: 'child',
+      sexes: 'sex',
+      move: 'moves',
+      kine: 'cow',
+      zombies: 'zombie'
+    };
+
     var InflectorApi = {
-      _dictionary: _.extend({}, irregular),
+      isPlural: function (word) {
+        return this.pluralize(word) === word;
+      },
+
+      isSingular: function (word) {
+        return this.singularize(word) === word;
+      },
+
+      singularize: function (word) {
+        return this._map(word, singularRules, singularDictionary);
+      },
 
       pluralize: function (word, count) {
         var usePluralForm = this._isNumberPlural(count);
-        var result;
-        var rule;
-        var index;
-        var length;
-        var pattern;
-        var replacement;
-
-        this._dictionary = this._dictionary || {};
 
         if (!usePluralForm) {
-          return word;
+          return this.singularize(word);
         }
 
-        if (this._dictionary[word]) {
+        return this._map(word, pluralRules, pluralDictionary);
+      },
+
+      addIrregular: function (word, pluralForm) {
+        if (word && pluralForm) {
+          pluralDictionary[word] = pluralForm;
+          singularDictionary[pluralForm] = word;
+        }
+      },
+
+      _map: function (word, rules, dictionary) {
+        var index;
+        var pattern;
+        var replacement;
+        var result;
+
+        if (dictionary[word]) {
           // if the word is already in the dictionary, return it
-          return this._dictionary[word];
+          return dictionary[word];
         }
 
-        if(_.contains(_uncountables, word)) {
+        if (uncountables[word]) {
           return word;
         }
 
-        for(index=0, length = _pluralRules.length; index < length; index++) {
-          rule = _pluralRules[index];
-          pattern = rule[0];
-          replacement = rule[1];
+        for(index = 0; index < rules.length; index += 2) {
+          pattern = rules[index];
+          replacement = rules[index + 1];
+
           result = this._replace(word, pattern, replacement);
+
           if (result) {
             break;
           }
         }
 
         if (result) {
-          this._dictionary[word] = result; // add the plural form into the dictionary
+          dictionary[word] = result; // add the plural form into the dictionary
           return result;
         } else {
           // return the word if no match
           return word;
-        }
-      },
-
-      addIrregular: function (word, pluralForm) {
-        if (word && pluralForm) {
-          this._dictionary[word] = pluralForm;
         }
       },
 

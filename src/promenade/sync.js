@@ -1,38 +1,38 @@
 define(['backbone', 'underscore'],
-       function(Backbone, _) {
+       function (Backbone, _) {
   'use strict';
   // Promenade.Sync API
   // ------------------
   var SyncApi = {
 
-    canRequestMore: function() {
+    canRequestMore: function () {
       return this._paginationUpperIndex !== undefined &&
              this._paginationUpperIndex !== null;
     },
 
-    canRequestUpdates: function() {
+    canRequestUpdates: function () {
       return this._paginationLowerIndex !== undefined &&
              this._paginationLowerIndex !== null;
     },
 
-    isSyncing: function() {
+    isSyncing: function () {
       return this._syncingStack > 0;
     },
 
-    canSync: function() {
+    canSync: function () {
       return !!((this.collection && this.collection.url) ||
                 _.isString(this.url) || this.urlRoot);
     },
 
-    hasSynced: function() {
+    hasSynced: function () {
       return !this._needsSync || this._synced;
     },
 
-    needsSync: function() {
+    needsSync: function () {
       return this.canSync() && !this.hasSynced() && !this.isSyncing();
     },
 
-    syncs: function() {
+    syncs: function () {
       return this._syncs;
     },
 
@@ -42,32 +42,39 @@ define(['backbone', 'underscore'],
     // available. This event allows an ``Application`` to propagate extra
     // response data before the normal ``'sync'`` event triggers, and prior to
     // any network success callbacks being called.
-    sync: function(method, model, options) {
+    sync: function (method, model, options) {
       var success;
       var error;
       var beforeSend;
 
       options = options || {};
-      success = options.success || function(){};
-      error = options.error || function(){};
-      beforeSend = options.beforeSend || function(){};
+      success = options.success || function (){};
+      error = options.error || function (){};
+      beforeSend = options.beforeSend || function (){};
 
       this._resetSyncState();
       this._pushSync();
 
-      options.success = _.bind(this._onSyncSuccess, this,
+      success = _.bind(this._onSyncSuccess, this,
                                method, model, options, success);
-      options.error = _.bind(this._onSyncError, this, error);
+      error = _.bind(this._onSyncError, this, error);
+
       options.beforeSend = _.bind(this._onBeforeSend, this, beforeSend);
+      options.success = success;
+      options.error = error;
 
-      return Backbone.sync.call(this, method, model, options);
+      return this.app.data.raw({
+        method: method,
+        model: model,
+        options: options
+      }).then(success)['catch'](error);
     },
 
-    replay: function(method, model, options) {
+    _prepareSync: function () {
 
     },
 
-    _onSyncSuccess: function(method, model, options, success, resp, status, xhr) {
+    _onSyncSuccess: function (method, model, options, success, resp, status, xhr) {
       var app = model.app;
       var upperIndex;
       var lowerIndex;
@@ -81,7 +88,7 @@ define(['backbone', 'underscore'],
 
       if (options.pipe && upperIndex && method === 'read' &&
           upperIndex !== this._paginationUpperIndex) {
-        _.delay(_.bind(function() {
+        _.delay(_.bind(function () {
           this.sync(method, model, options);
         }, this), 0);
       }
@@ -112,12 +119,12 @@ define(['backbone', 'underscore'],
       }
     },
 
-    _onSyncError: function(error, model, resp, options) {
+    _onSyncError: function (error, model, resp, options) {
       this._popSync();
       error.call(options, model, resp, options);
     },
 
-    _onBeforeSend: function(beforeSend, xhr, options) {
+    _onBeforeSend: function (beforeSend, xhr, options) {
 
       if (xhr) {
         if (options.requestMore && this.canRequestMore()) {
@@ -134,17 +141,17 @@ define(['backbone', 'underscore'],
       beforeSend.call(options, xhr);
     },
 
-    _pushSync: function() {
+    _pushSync: function () {
       ++this._syncingStack;
     },
 
-    _popSync: function() {
+    _popSync: function () {
       if (this._syncingStack) {
         --this._syncingStack;
       }
     },
 
-    _resetSyncState: function() {
+    _resetSyncState: function () {
       var eventuallySyncs = new $.Deferred();
 
       this._synced = this._synced === true;
@@ -155,7 +162,7 @@ define(['backbone', 'underscore'],
            _.result(this, 'isNew') === false)) {
         eventuallySyncs.resolve(this);
       } else {
-        this.once('sync', function() {
+        this.once('sync', function () {
           eventuallySyncs.resolve(this);
         });
       }

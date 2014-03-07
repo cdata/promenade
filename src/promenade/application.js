@@ -1,5 +1,6 @@
-define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
-       function(Backbone, _, $, require, InflectorApi) {
+define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector',
+        'promenade/data', 'promenade/data/middleware/backbonesync'],
+       function (Backbone, _, $, require, InflectorApi, Data, BackboneSync) {
   'use strict';
   // Promenade.Application
   // --------------------
@@ -36,11 +37,12 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
 
     view: null,
 
-    initialize: function(options) {
+    initialize: function (options) {
       Backbone.Router.prototype.initialize.apply(this, arguments);
       var view = this.view;
       this.view = null;
 
+      this._initializeData();
       this._initializeModels();
 
       // All instantiated resources are listened to for ``'sync'`` events in
@@ -51,16 +53,12 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
       this.cid = _.uniqueId();
       this._ensureRoot();
 
-      this.initializes = this.setup().then(_.bind(function() {
+      this.initializes = this.setup().then(_.bind(function () {
         this.useView(view);
       }, this));
     },
 
-    //routeFor: function() {
-      //var args = Array.prototype.slice.call(arguments);
-    //},
-
-    navigate: function(fragment, options) {
+    navigate: function (fragment, options) {
       fragment = this.parseFragment(fragment);
 
       if (this.updateLocation === false) {
@@ -70,46 +68,46 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
       return Backbone.Router.prototype.navigate.call(this, fragment, options);
     },
 
-    parseFragment: function(fragment) {
+    parseFragment: function (fragment) {
       return _.isString(fragment) ? fragment.replace(/^\//, '') : fragment;
     },
 
-    setup: function() {
+    setup: function () {
       return (new $.Deferred()).resolve().promise();
     },
 
     // The ``getResource`` method can be called to lookup a backing datastore
     // when it can be either a ``Model`` or ``Collection`` instance. By default,
     // ``Collection`` instances are given preference.
-    getResource: function(type) {
+    getResource: function (type) {
       return this.getCollectionForType(type) || this.getModelForType(type);
     },
 
     // Automatically looks up a ``Collection`` for a given ``type``.
-    getCollectionForType: function(type) {
+    getCollectionForType: function (type) {
       return this[this.getCollectionName(type)];
     },
 
     // Similarly, looks up a ``Model`` for a given ``type``.
-    getModelForType: function(type) {
+    getModelForType: function (type) {
       return this[this.getModelName(type)];
     },
 
     // These methods exist for the purpose of more predictable canonicalization
     // of property names given a ``type``.
-    getCollectionName: function(type) {
+    getCollectionName: function (type) {
       return this.camelize(type) + 'Collection';
     },
 
-    getModelName: function(type) {
+    getModelName: function (type) {
       return this.camelize(type) + 'Model';
     },
 
-    hasSession: function() {
+    hasSession: function () {
       return !!this.getSession();
     },
 
-    getSession: function() {
+    getSession: function () {
       return this.getModelForType(_.result(this, 'session'));
     },
 
@@ -118,7 +116,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
     // where a resolved ``type`` value is not camelized. This helper function
     // converted strings separated with ``'_'`` characters into camel-cased
     // strings.
-    camelize: function(string) {
+    camelize: function (string) {
       var parts = string.split('_');
       var part;
       var index;
@@ -147,7 +145,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
     // ``useView`` is an idempotent way to set the main layout of an
     // ``Application`` instance. The method accepts a string, class reference
     // or ``View`` instance.
-    useView: function(View) {
+    useView: function (View) {
       var view;
 
       // When no argument is provided, the method returns immediately.
@@ -166,7 +164,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
       // of ``View``, or if ``view`` and ``View`` are the same, the method
       // returns immediately.
       if (this.view) {
-        if ((_.isFunction(View) && this.view instanceof View) ||
+        if ((_.isfunction (View) && this.view instanceof View) ||
             this.view === View) {
           return;
         }
@@ -178,7 +176,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
 
       // The new ``view`` is created either by instantiating a provided class,
       // or by setting a provided instance.
-      if (_.isFunction(View)) {
+      if (_.isfunction (View)) {
         view = new View({
           model: this.getSession(),
           app: this
@@ -196,7 +194,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
       this.view = view;
     },
 
-    _ensureRoot: function() {
+    _ensureRoot: function () {
       // The ``$rootElement`` and ``rootElement`` properties are created on the
       // ``Application`` instance during initialization.
       this.$rootElement = $(this.root);
@@ -206,7 +204,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
                            '.route-link', _.bind(this._onClickRouteLink, this));
     },
 
-    _onClickRouteLink: function(event) {
+    _onClickRouteLink: function (event) {
       var $el = $(event.currentTarget);
       var href = $el.attr('href') || $el.data('href');
 
@@ -218,14 +216,19 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
       throw new Error('A route link was clicked, but no HREF was found.');
     },
 
+    _initializeData: function () {
+      this._data = new Data();
+      this._data.use(BackboneSync);
+    },
+
     // Upon initialization, and ``Application`` iterates through the list of
     // provided classes associated with its ``models`` property. Each of these
     // classes is instantiated and cached against its ``type`` and ``namespace``
     // values, separately, if available.
-    _initializeModels: function() {
+    _initializeModels: function () {
       this._namespace = {};
 
-      _.each(this.models, function(ModelClass) {
+      _.each(this.models, function (ModelClass) {
         var model = new ModelClass(null, {
           app: this
         });
@@ -249,7 +252,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
     // the network response to determine if there is any data that applies to
     // resources in other namespaces. If there is, the data in the namespace is
     // propagated to the known corresponding resources.
-    _onBeforeSync: function(model, response, options) {
+    _onBeforeSync: function (model, response, options) {
       var originalNamespace = _.result(model, 'namespace');
       var propagates = _.result(model, 'propagates');
 
@@ -262,7 +265,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
         return;
       }
 
-      _.each(response, function(data, key) {
+      _.each(response, function (data, key) {
         var otherModel = this._namespace[key];
         var otherType;
         var otherData;
@@ -287,7 +290,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
       }, this);
     },
 
-    _onSync: function(model, response, options) {
+    _onSync: function (model, response, options) {
       var type = _.result(model, 'type');
 
       options = _.defaults(options || {}, {
@@ -306,10 +309,10 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
     // ``controllers`` property of the ``Application``. All provided
     // ``Controller`` classes are instantiated and references are help
     // by the ``Application``.
-    _bindRoutes: function() {
+    _bindRoutes: function () {
       Backbone.Router.prototype._bindRoutes.apply(this, arguments);
 
-      this.controllers = _.map(this.controllers, function(Controller) {
+      this.controllers = _.map(this.controllers, function (Controller) {
 
         var controller = new Controller({
           app: this
@@ -318,9 +321,9 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
         // When a ``Controller`` is instantiated, it defines the ``routes`` that
         // it can support. These ``routes`` are each mapped to a ``route`` in
         // ``Application``, which is a ``Backbone.Router`` derivative.
-        _.each(controller.routes, function(route) {
-          this.route(route.fragment, route.fragment, _.bind(function() {
-            _.each(this.controllers, function(_controller, index) {
+        _.each(controller.routes, function (route) {
+          this.route(route.fragment, route.fragment, _.bind(function () {
+            _.each(this.controllers, function (_controller, index) {
               if (_controller !== controller && !_controller.handlesRoute(route.fragment)) {
                 _controller.setInactive();
               }

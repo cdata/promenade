@@ -34,6 +34,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this._loadingStack = 0;
 
       this._ensureRegions();
+      this._ensureState();
 
       this._decorateElement();
     },

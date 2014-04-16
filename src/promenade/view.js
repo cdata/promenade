@@ -1,8 +1,8 @@
 define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
         'promenade/collection/retainer', 'promenade/delegation', 'promenade/model',
-        'promenade/collection', 'promenade/queue'],
+        'promenade/collection', 'promenade/queue', 'promenade/state'],
        function($, Backbone, templates, _, Region, RetainerApi, DelegationApi,
-                Model, Collection, QueueApi) {
+                Model, Collection, QueueApi, StateMachineApi) {
   'use strict';
   // Promenade.View
   // --------------
@@ -354,7 +354,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     }
   });
 
-  _.extend(View.prototype, RetainerApi, DelegationApi, QueueApi);
+  _.extend(View.prototype, RetainerApi, DelegationApi, QueueApi, StateMachineApi);
 
   return View;
 });

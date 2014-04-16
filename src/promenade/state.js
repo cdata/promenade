@@ -62,8 +62,3 @@ define(['backbone', 'underscore'],
 
   return StateMachine;
 });
-
-
-// states: [
-//   { name: 'foo', transitionTo: ['bar', 'baz'] }
-// ],

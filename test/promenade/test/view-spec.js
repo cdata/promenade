@@ -9,6 +9,14 @@ define(['backbone', 'promenade', 'promenade/view'],
     beforeEach(function() {
       MyView = View.extend({
         template: 'list',
+        states: {
+          initial: {
+            transitionTo: ['foo']
+          },
+          foo: {
+            transitionTo: []
+          }
+        },
         layout: {
           foo: '.foo',
           bar: '.bar'
@@ -43,6 +51,18 @@ define(['backbone', 'promenade', 'promenade/view'],
 
         myView = new MyView({
           model: myModel
+        });
+      });
+
+      it('has a className on its el that reflects the current state', function() {
+        expect(myView.$el.hasClass('state-initial')).to.be(true);
+      });
+
+      describe('and the state changes', function() {
+        it('changes the className on the el', function(){ 
+          myView.transitionTo('foo');
+          expect(myView.$el.hasClass('state-foo')).to.be(true);
+          expect(myView.$el.hasClass('state-initial')).to.be(false);
         });
       });
 

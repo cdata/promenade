@@ -279,7 +279,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     },
 
     _setStateClassName: function(state) {
-      this.el.className = _.reject(this.el.className.split(/\s*/), function (className) {
+      this.el.className = _.reject(this.el.className.split(/\s+/), function (className) {
         return View.stateClassNameMatcher.test(className);
       }).join(' ');
 

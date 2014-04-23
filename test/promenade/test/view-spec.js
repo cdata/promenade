@@ -64,6 +64,20 @@ define(['backbone', 'promenade', 'promenade/view'],
           expect(myView.$el.hasClass('state-foo')).to.be(true);
           expect(myView.$el.hasClass('state-initial')).to.be(false);
         });
+
+        describe('when there are other class names on the el', function () {
+          beforeEach(function () {
+            //myView.$el.addClass('foo');
+            myView.transitionTo('foo');
+          });
+          it('changes the className on the el', function () {
+            expect(myView.$el.hasClass('state-foo')).to.be(true);
+            expect(myView.$el.hasClass('state-initial')).to.be(false);
+          });
+          it('preserves the other non-state class names', function() {
+            expect(myView.$el.hasClass('foo'));
+          });
+        });
       });
 
       it('adds model data attributes to the root element', function() {

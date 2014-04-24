@@ -14,9 +14,6 @@ define(['promenade', 'promenade/state', 'jquery'],
       beforeEach(function () {
         MyClass = Promenade.Object.extend(StateMachineApi).extend({
           initialize: function () {
-            this.listenTo(this, 'enter:foo', this.onFooEnter);
-            this.listenTo(this, 'enter:initial', this.onInitialEnter);
-
             this._ensureState();
           },
 
@@ -27,19 +24,19 @@ define(['promenade', 'promenade/state', 'jquery'],
             foo: {}
           },
 
-          onFooEnter: $.noop,
-          onInitialEnter: $.noop
+          onEnterStateFoo: $.noop,
+          onEnterStateInitial: $.noop
         });
 
-        sinon.spy(MyClass.prototype, 'onFooEnter');
-        sinon.spy(MyClass.prototype, 'onInitialEnter');
+        sinon.spy(MyClass.prototype, 'onEnterStateFoo');
+        sinon.spy(MyClass.prototype, 'onEnterStateInitial');
 
         instance = new MyClass();
       });
 
       afterEach(function () {
-        MyClass.prototype.onFooEnter.restore();
-        MyClass.prototype.onInitialEnter.restore();
+        MyClass.prototype.onEnterStateFoo.restore();
+        MyClass.prototype.onEnterStateInitial.restore();
 
         instance.stopListening(instance);
       });
@@ -57,14 +54,14 @@ define(['promenade', 'promenade/state', 'jquery'],
       });
 
       it('start from a init state', function () {
-        expect(instance.onInitialEnter.calledOnce).to.be(true);
+        expect(instance.onEnterStateInitial.calledOnce).to.be(true);
       });
 
       describe('when state changes', function () {
 
         it('trigger an enter event', function () {
           instance.transitionTo('foo');
-          expect(instance.onFooEnter.calledOnce).to.be(true);
+          expect(instance.onEnterStateFoo.calledOnce).to.be(true);
         });
       });
 
@@ -72,12 +69,12 @@ define(['promenade', 'promenade/state', 'jquery'],
 
         beforeEach(function () {
           instance.transitionTo('foo');
-          instance.onInitialEnter.reset();
+          instance.onEnterStateInitial.reset();
         });
 
         it('triggers no event', function () {
           instance.transitionTo('initial');
-          expect(instance.onInitialEnter.calledOnce).to.be(false);
+          expect(instance.onEnterStateInitial.calledOnce).to.be(false);
         });
       });
     });

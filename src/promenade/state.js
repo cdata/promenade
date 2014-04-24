@@ -5,19 +5,34 @@ define(['backbone', 'underscore'],
   'use strict';
   // Promenade.StateMachine API
   // -------------------
+  _.mixin({
+    capitalize: function(string) {
+      return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
+    }
+  });
 
   var StateMachine = {
-    states: {},
+    states: null,
 
     transitionTo: function (newState) {
+      var args = Array.prototype.slice.call(arguments, 1);
+
       if (!this.isValidTransition(newState)) {
         return;
       }
 
       this._currentState = newState;
 
-      if (_.isFunction(this.trigger)) {
-        this.trigger('enter:' + this._currentState, this);
+      this._invokeEnterStateCallback('all', arguments);
+      this._invokeEnterStateCallback(this._currentState, args);
+    },
+
+    _invokeEnterStateCallback: function (stateName, args) {
+      var methodName = 'onEnterState' + (stateName !== 'all' ? _.capitalize(stateName) : '');
+      var method = this[methodName];
+
+      if (_.isFunction(method)) {
+        method.apply(this, args);
       }
     },
 
@@ -56,7 +71,11 @@ define(['backbone', 'underscore'],
     },
 
     _ensureState: function () {
-      this.transitionTo('initial');
+      if (!this.states || !this.states[this.getInitialState()]) {
+        throw new Error('State machine initialized, but no states were declared.');
+      }
+
+      this.transitionTo(this.getInitialState());
     }
   };
 

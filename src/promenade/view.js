@@ -34,7 +34,10 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
       this._loadingStack = 0;
 
       this._ensureRegions();
-      this._ensureState();
+
+      if (this.states) {
+        this._ensureState();
+      }
 
       this._decorateElement();
     },
@@ -62,7 +65,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
         this.$el.html(html);
       }
 
-      // If recursive rendering is desired, each region is asked to re-render
+      // If recursive is desired, each region is asked to re-render
       // its subviews.
       if (recursive === true) {
         for (region in this.layout) {
@@ -106,11 +109,16 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     template: '',
 
     delegateEvents: function() {
+      // set state class name
       if (!this.isDelegationActive()) {
         this.activateDelegation();
       }
 
       return Backbone.View.prototype.delegateEvents.apply(this, arguments);
+    },
+
+    onEnterState: function(state) {
+      this._setStateClassName(state);
     },
 
     // A new ``detach`` method allows the ``View`` to be detached in a way that
@@ -263,8 +271,19 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     },
 
     _selfEvents: {
-      //'dom:attach': '_bubbleDomAttach',
-      //'dom:detach': '_bubbleDomDetach'
+      'enter:all': '_setStateClassName'
+    },
+
+    _stateClassName: function(state) {
+      return 'state-' + state;
+    },
+
+    _setStateClassName: function(state) {
+      this.el.className = _.reject(this.el.className.split(/\s+/), function (className) {
+        return View.stateClassNameMatcher.test(className);
+      }).join(' ');
+
+      this.$el.addClass(this._stateClassName(state));
     },
 
     _onModelChange: function() {
@@ -353,6 +372,8 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       return Result.promise();
     }
+  }, {
+    stateClassNameMatcher: /state-[a-z0-9]*/
   });
 
   _.extend(View.prototype, RetainerApi, DelegationApi, QueueApi, StateMachineApi);

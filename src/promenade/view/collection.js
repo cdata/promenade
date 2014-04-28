@@ -113,7 +113,7 @@ define(['promenade/view', 'promenade/collection'],
     _collectionEvents: _.defaults({
       'add': '_addItemByModel',
       'remove': '_removeItemByModel',
-      'reset': '_removeAllItems',
+      'reset': 'resetItems',
       'sort': '_sortItems'
     }, View.prototype._collectionEvents),
 

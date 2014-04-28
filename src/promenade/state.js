@@ -8,6 +8,10 @@ define(['backbone', 'underscore'],
   _.mixin({
     capitalize: function(string) {
       return string.charAt(0).toUpperCase() + string.substring(1).toLowerCase();
+    },
+
+    upperCaseFirstLetter: function(string) {
+      return string.charAt(0).toUpperCase() + string.substring(1);
     }
   });
 
@@ -28,7 +32,8 @@ define(['backbone', 'underscore'],
     },
 
     _invokeEnterStateCallback: function (stateName, args) {
-      var methodName = 'onEnterState' + (stateName !== 'all' ? _.capitalize(stateName) : '');
+      var methodName = 'onEnterState' + (stateName !== 'all' ? _.upperCaseFirstLetter(stateName) : '');
+
       var method = this[methodName];
 
       if (_.isFunction(method)) {

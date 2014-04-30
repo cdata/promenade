@@ -113,6 +113,27 @@ define(['promenade', 'promenade/view/collection'],
             expect(newNumberOfViews).to.be(numberOfViews + 1);
           });
         });
+
+        describe('that has a model removed', function () {
+          describe('by child view', function () {
+            var firstChildView, numberOfViews, numberOfModels;
+            beforeEach(function () {
+              myCollectionView.render();
+              firstChildView = myCollectionView.getRegion('outlet').subviews[0];
+              numberOfViews = myCollectionView.getRegion('outlet').subviews.length;
+              numberOfModels = myCollectionView.getCollection().length;
+              firstChildView.trigger('remove', firstChildView.getModel());
+            });
+
+            it('removes the view from the outlet', function () {
+              expect(myCollectionView.getRegion('outlet').subviews.length).to.be(numberOfViews - 1);
+            });
+
+            it('removes the model from the collection', function () {
+              expect(myCollectionView.getCollection().length).to.be(numberOfModels);
+            });
+          });
+        });
       });
     });
 

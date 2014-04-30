@@ -183,6 +183,7 @@ define(['promenade/view', 'promenade/collection'],
       options = this.resolveItemOptions(model);
       view = this.createItemView(options);
       this.listenTo(view, 'render', this._onItemRender);
+      this.listenTo(view, 'remove', this._onItemRemove);
 
       this.items[model.cid] = view;
 
@@ -208,12 +209,17 @@ define(['promenade/view', 'promenade/collection'],
       region.remove(view);
       view.undelegateEvents();
       this.stopListening(view, 'render', this._onItemRender);
+      this.stopListening(view, 'remove', this._onItemRemove);
 
       this.trigger('remove:item', view, this);
     },
 
     _onItemRender: function(model) {
       this.trigger('render:item', this);
+    },
+
+    _onItemRemove: function(model) {
+      this._removeItemByModel(model);
     },
 
     // Sometimes we want to remove all subviews at once. For instance, when our

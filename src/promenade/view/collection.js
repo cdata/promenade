@@ -180,7 +180,7 @@ define(['promenade/view', 'promenade/collection'],
       // instance into our ``'outlet'`` region.
       region = this.getRegion('outlet');
       index = this.getCollection().indexOf(model);
-      options = this.resolveItemOptions(model);
+      options = _.defaults(this.resolveItemOptions(model), { parentView: this });
       view = this.createItemView(options);
       this.listenTo(view, 'render', this._onItemRender);
 

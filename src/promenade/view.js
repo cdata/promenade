@@ -24,6 +24,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
 
       this.collection = options.collection;
       this.template = options.template || this.template;
+      this.parentView = options.parentView;
 
       if (this.template) {
         this.templateFactory = templates[this.template];

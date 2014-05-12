@@ -85,17 +85,22 @@ define(['promenade', 'promenade/view/collection'],
         describe('that has models in it', function() {
 
           describe('and rendered', function() {
+            var childViews;
+            var childNodes;
 
             beforeEach(function() {
               myCollectionView.render();
+              childNodes = myCollectionView.getRegion('outlet').$container.children();
+              childViews = myCollectionView.getRegion('outlet').subviews;
             });
 
             it('creates a view for every model', function() {
-              var childNodes = myCollectionView.getRegion('outlet').$container.children();
-              var childViews = myCollectionView.getRegion('outlet').subviews;
-
               expect(childNodes.length).to.be(childViews.length);
               expect(childViews.length).to.be(myCollection.length);
+            });
+
+            it('has can be referenced by the child views', function () {
+              expect(childViews[0].parentView).to.be(myCollectionView);
             });
           });
         });

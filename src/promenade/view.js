@@ -172,7 +172,7 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
     },
 
     getModel: function() {
-      return this.model || this.getCollection();
+      return this.model;
     },
 
     hasCollection: function() {

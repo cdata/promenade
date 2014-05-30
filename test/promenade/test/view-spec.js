@@ -59,7 +59,7 @@ define(['backbone', 'promenade', 'promenade/view'],
       });
 
       describe('and the state changes', function() {
-        it('changes the className on the el', function(){ 
+        it('changes the className on the el', function(){
           myView.transitionTo('foo');
           expect(myView.$el.hasClass('state-foo')).to.be(true);
           expect(myView.$el.hasClass('state-initial')).to.be(false);
@@ -326,17 +326,6 @@ define(['backbone', 'promenade', 'promenade/view'],
           var data = myView.serializeModelData();
 
           expect(data).to.be.eql({ foo: 'foo', bar: 'bar', model_is_new: true });
-        });
-
-        it('will fallback to a defined collection', function() {
-          var data;
-
-          myView.model = null;
-          myView.collection = new Backbone.Collection([{}, {}, {}]);
-
-          data = myView.serializeModelData();
-
-          expect(data).to.be.eql([{}, {}, {}]);
         });
 
         it('will always return an object', function() {

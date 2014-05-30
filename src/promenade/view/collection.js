@@ -46,10 +46,6 @@ define(['promenade/view', 'promenade/collection'],
       return !!this.model;
     },
 
-    getModel: function() {
-      return this.model;
-    },
-
     createItemView: function(options) {
       return new this.itemClass(options);
     },

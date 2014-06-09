@@ -120,8 +120,8 @@ define(['backbone', 'underscore', 'jquery'],
         var next;
 
         if (queue.length === 0) {
-          workCompletes.resolve();
           self._queueWorkers[id] = null;
+          workCompletes.resolve();
           return;
         }
 

@@ -11,15 +11,13 @@
     "grunt": "~0.4.1",
     "grunt-contrib-requirejs": "~0.4.1",
     "grunt-contrib-watch": "~0.4.4",
-    "grunt-mocha-phantom-hack": "~0.0.1",
     "grunt-contrib-jshint": "~0.6.0",
     "grunt-docco2": "~0.1.1",
-    "grunt-mocha-phantomjs": "~0.3.0",
-    "grunt-mocha": "~0.4.1",
-    "karma-mocha": "~0.1.1",
-    "karma-requirejs": "~0.2.1",
-    "grunt-karma": "~0.6.2",
-    "karma": "~0.10.9"
+    "karma-mocha": "*",
+    "karma-requirejs": "*",
+    "grunt-karma": "*",
+    "karma": "*",
+    "karma-phantomjs-launcher": "^0.1.4"
   },
   "scripts": {
     "test": "grunt test"

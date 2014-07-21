@@ -155,9 +155,14 @@ define(['backbone', 'underscore'],
            _.result(this, 'isNew') === false)) {
         eventuallySyncs.resolve(this);
       } else {
-        this.once('sync', function() {
+        this.on('sync', function syncs() {
+          if (this.isSyncing()) {
+            return;
+          }
+
+          this.off('sync', syncs);
           eventuallySyncs.resolve(this);
-        });
+        }, this);
       }
 
       this._syncs = eventuallySyncs.promise();

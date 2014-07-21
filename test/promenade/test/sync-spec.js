@@ -81,6 +81,75 @@ define(['promenade', 'promenade/sync'],
         });
       });
 
+      describe('when there are subsets causing network operations on their parent', function() {
+        var aCollection;
+        var aSubset;
+        var syncCount;
+
+        beforeEach(function() {
+          aCollection = new ACollection();
+          aSubset = aCollection.subset(function() {
+            return true;
+          });
+          aSubset.connect();
+          syncCount = 0;
+        });
+
+        it('resolves the sync promise on the subset', function() {
+          aSubset.fetch();
+
+          aSubset.syncs().then(function() {
+            ++syncCount;
+          });
+
+          server.respond();
+
+          expect(syncCount).to.be(1);
+        });
+
+        it('creates and resolves sync promises for every operation', function() {
+          aSubset.fetch();
+
+          aSubset.syncs().then(function() {
+            ++syncCount;
+          });
+
+          server.respond();
+
+          expect(syncCount).to.be(1);
+
+          aSubset.fetch();
+
+          expect(aSubset.syncs().state()).to.be('pending');
+
+          aSubset.syncs().then(function() {
+            ++syncCount;
+          });
+
+          server.respond();
+
+          expect(syncCount).to.be(2);
+        });
+
+        it('only triggers sync on subsets that originated a network operation', function() {
+          aCollection.fetch();
+
+          aSubset.once('sync', function() {
+            ++syncCount;
+          });
+
+          server.respond();
+
+          expect(syncCount).to.be(0);
+
+          aSubset.fetch();
+
+          server.respond();
+
+          expect(syncCount).to.be(1);
+        });
+      });
+
       describe('when no network operation is in flight', function() {
         it('waits for the first sync to complete before resolving', function() {
           var resolvedCount = 0;

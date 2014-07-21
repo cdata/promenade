@@ -225,6 +225,10 @@ define(['backbone', 'underscore'],
     },
 
     _onSupersetSync: function(model, resp, options) {
+      if (options.originatingSubset !== this) {
+        return;
+      }
+
       this.trigger('sync', this, resp, options);
     },
 
@@ -295,6 +299,9 @@ define(['backbone', 'underscore'],
           }
         };
 
+        options.originatingSubset = this;
+
+        this._resetSyncState();
         this._pushSync();
 
         return this.superset[method].call(this.superset, options);

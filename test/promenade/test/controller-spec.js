@@ -3,13 +3,44 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
 
   describe('Promenade.Controller', function() {
 
+    var NUMBER_OF_CONTROLLER_ROUTES;
     var MyController;
     var MyModel;
     var MyCollection;
     var MyApplication;
+    var controllerOne;
+    var controllerTwo;
     var app;
+    var server;
+
+    var fixtureApiShowRoute = function (type, id, response) {
+      server.respondWith('GET', '/api/' + type + '/' + id, [
+        200,
+        {
+          'Content-Type': 'application/json'
+        },
+        JSON.stringify(response)
+      ]);
+    };
+
+    var fixtureApiIndexRoute = function (type, response) {
+      server.respondWith('GET', '/api/' + type, [
+        200,
+        {
+          'Content-Type': 'application/json'
+        },
+        JSON.stringify(response)
+      ]);
+    };
 
     beforeEach(function() {
+      NUMBER_OF_CONTROLLER_ROUTES = 12;
+
+      server = sinon.fakeServer.create();
+      server.autoRespond = true;
+      fixtureApiIndexRoute('lur', []);
+      fixtureApiShowRoute('lur', 1, { type: 'lur', id: 1 });
+      fixtureApiShowRoute('lur', 2, { type: 'lur', id: 2 });
       MyController = Promenade.Controller.extend({
         defineRoutes: function() {
           this.handle('foo', 'foo');
@@ -29,10 +60,19 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           });
 
           this.index('lur', 'neverCalled');
+
+          this.handle('query', 'handleQuery', function() {
+            this.query('bar');
+            this.query('lur');
+
+            this.show('lur', 'lurWithQuery');
+          });
         },
         foo: function() {},
         bar: function() {},
         barBaz: function(baz) {},
+        handleQuery: function(query) {},
+        lurWithQuery: function(lur, query) {},
         receivesBar: function(bar) {},
         receivesModel: function(model) {},
         receivesBarAndModel: function(bar, model) {},
@@ -68,12 +108,15 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         ]
       });
       app = new MyApplication();
+      controllerOne = app.controllers[0];
+      controllerTwo = app.controllers[1];
       Backbone.history.start();
     });
 
     afterEach(function() {
       Backbone.history.stop();
       Backbone.history.handlers = [];
+      server.restore();
     });
 
     it('is defined', function() {
@@ -94,7 +137,7 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
         for (var routeString in myController.routes) {
           ++count;
         }
-        expect(count).to.be.eql(10);
+        expect(count).to.be.eql(NUMBER_OF_CONTROLLER_ROUTES);
       });
     });
 
@@ -112,6 +155,8 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           sinon.spy(app.controllers[0], 'receivesCollection');
           sinon.spy(app.controllers[0], 'receivesCollectionAndModel');
           sinon.spy(app.controllers[0], 'neverCalled');
+          sinon.spy(app.controllers[0], 'handleQuery');
+          sinon.spy(app.controllers[0], 'lurWithQuery');
 
           app.lurCollection.reset([{
             id: '1'
@@ -129,15 +174,31 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           app.controllers[1].deactivate.restore();
           app.controllers[0].receivesCollection.restore();
           app.controllers[0].receivesCollectionAndModel.restore();
+          app.controllers[0].handleQuery.restore();
+          app.controllers[0].lurWithQuery.restore();
           app.navigate('');
         });
 
-        it('calls its own activate method when the route first matches', function() {
-          expect(app.controllers[0].activate.callCount).to.be(0);
+        it('calls its own activate method when the route first matches', function(done) {
+          var doneNavigating = false;
+
+          controllerOne.on('after:route', function () {
+            try {
+              expect(controllerOne.activate.callCount).to.be(1);
+
+              if (!doneNavigating) {
+                doneNavigating = true;
+                app.navigate('lur/1', { trigger: true });
+              } else {
+                done();
+              }
+            } catch (e) {
+              done(e);
+            }
+          });
+
+          expect(controllerOne.activate.callCount).to.be(0);
           app.navigate('foo/bar', { trigger: true });
-          expect(app.controllers[0].activate.callCount).to.be(1);
-          app.navigate('lur/1', { trigger: true });
-          expect(app.controllers[0].activate.callCount).to.be(1);
         });
 
         it('calls its own deactivate method when the route no longer matches', function() {
@@ -148,14 +209,21 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           expect(app.controllers[0].deactivate.callCount).to.be(1);
         });
 
-        it('only calls the first matched route', function() {
+        it('only calls the first matched route', function(done) {
+          app.controllers[0].on('after:route', function () {
+            try {
+              expect(app.controllers[0].neverCalled.callCount).to.be(0);
+              expect(app.controllers[0].receivesCollection.callCount).to.be(1);
+              done();
+            } catch(e) {
+              done(e);
+            }
+          });
+
           expect(app.controllers[0].neverCalled.callCount).to.be(0);
           expect(app.controllers[0].receivesCollection.callCount).to.be(0);
 
           app.navigate('lur', { trigger: true });
-
-          expect(app.controllers[0].neverCalled.callCount).to.be(0);
-          expect(app.controllers[0].receivesCollection.callCount).to.be(1);
         });
 
         it('always deactivates old controllers before activating new ones', function() {
@@ -176,89 +244,205 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
               app.controllers[0].activate)).to.be(true);
         });
 
-        describe('with an index route', function() {
-          beforeEach(function() {
-            app.lurCollection.fetch = function() {
-              this._syncs = (new $.Deferred()).resolve(this).promise();
-            };
+        describe('with a query route modifier', function() {
+
+          it('passes a final argument which is a hash of query keys to values', function(done) {
+            var controller = app.controllers[0];
+
+            controller.on('after:route', function () {
+              var args = controller.handleQuery.firstCall.args;
+
+              try {
+                expect(controller.handleQuery.callCount).to.be(1);
+                expect(args[0]).to.be.eql({ bar: '1' });
+                done();
+              } catch (e) {
+                done(e);
+              }
+            });
+
+            app.navigate('/query?bar=1', { trigger: true });
           });
 
-          it('yields a whole collection as an argument', function() {
-            app.navigate('lur', { trigger: true });
+          it('converts query values to models and collections when a type is known', function(done) {
+            var controller = app.controllers[0];
 
-            expect(app.controllers[0].receivesCollection.callCount).to.be(1);
-            expect(app.controllers[0].receivesCollection.getCall(0).calledWith(app.lurCollection))
-                .to.be(true);
+            fixtureApiShowRoute('lur', 1, { type: 'lur', id: 1 });
+
+            controller.on('after:route', function() {
+              try {
+                var args = controller.handleQuery.firstCall.args;
+
+                expect(controller.handleQuery.callCount).to.be(1);
+                expect(args[0]).to.be.eql({ bar: 1, lur: this.app.lurCollection.get(1) });
+
+                done();
+              } catch(e) {
+                done(e);
+              }
+            });
+
+            app.navigate('/query?bar=1&lur=1', { trigger: true });
+          });
+
+          it('allows query keys to be optional', function(done) {
+            var controller = app.controllers[0];
+
+            controller.on('after:route', function() {
+              try {
+                expect(controller.handleQuery.callCount).to.be(1);
+                expect(controller.handleQuery.getCall(0).calledWith({})).to.be(true);
+                done();
+              } catch(e) {
+                done(e);
+              }
+            });
+
+            app.navigate('/query', { trigger: true });
+          });
+
+          describe('when handling a nested route', function() {
+            it('applies the parent route\'s query settings to the nested route', function(done) {
+              var controller = app.controllers[0];
+
+              controller.on('after:route', function() {
+                try {
+                  var args = controller.lurWithQuery.firstCall.args;
+
+                  expect(controller.lurWithQuery.callCount).to.be(1);
+                  expect(args[1]).to.be.eql({ bar: 1 });
+                  done();
+                } catch(e) {
+                  done(e);
+                }
+              });
+
+              app.navigate('/query/lur/1?bar=1', { trigger: true });
+            });
+          });
+        });
+
+        describe('with an index route', function() {
+          beforeEach(function() {
+            fixtureApiIndexRoute('lur', []);
+            fixtureApiShowRoute('lur', 1, { type: 'lur', id: 1 });
+          });
+
+          it('yields a whole collection as an argument', function(done) {
+            app.controllers[0].on('after:route', function() {
+              try {
+                expect(app.controllers[0].receivesCollection.callCount).to.be(1);
+                expect(app.controllers[0].receivesCollection.getCall(0).calledWith(app.lurCollection))
+                    .to.be(true);
+                done();
+              } catch(e) {
+                done(e);
+              }
+            });
+
+            app.navigate('lur', { trigger: true });
           });
 
           describe('and a nested show route', function() {
-            it('yields a collection and a model', function() {
+            it('yields a collection and a model', function(done) {
+              app.controllers[0].on('after:route', function() {
+                try {
+                  expect(app.controllers[0].receivesCollectionAndModel.callCount).to.be(1);
+                  expect(app.controllers[0].receivesCollectionAndModel.calledWith(
+                      app.lurCollection, app.lurCollection.at(0))).to.be(true);
+                  done();
+                } catch(e) {
+                  done(e);
+                }
+              });
               app.navigate('lur/bing/1', { trigger: true });
-
-              expect(app.controllers[0].receivesCollectionAndModel.callCount).to.be(1);
-              expect(app.controllers[0].receivesCollectionAndModel.calledWith(
-                  app.lurCollection, app.lurCollection.at(0))).to.be(true);
             });
           });
         });
 
         describe('with an associated model', function() {
-          it('passes the model-key value to the handler', function() {
+          it('passes the model-key value to the handler', function(done) {
+            app.controllers[0].on('after:route', function () {
+              try {
+                expect(app.controllers[0].receivesBar.getCall(0).calledWith('baz'))
+                    .to.be(true);
+                done();
+              } catch (e) {
+                done(e);
+              }
+            });
             app.navigate('foo/bar', { trigger: true });
-            expect(app.controllers[0].receivesBar.getCall(0).calledWith('baz'))
-                .to.be(true);
           });
         });
 
         describe('with an associated collection', function() {
-          it('passes a model with the given id to the handler', function() {
+          it('passes a model with the given id to the handler', function(done) {
+            app.controllers[0].on('after:route', function() {
+              try {
+                expect(app.controllers[0].receivesModel.getCall(0).calledWith(
+                    app.lurCollection.get('1'))).to.be(true);
+                done();
+              } catch(e) {
+                done(e);
+              }
+            });
+
             app.navigate('lur/1', { trigger: true });
-            expect(app.controllers[0].receivesModel.getCall(0).calledWith(
-                app.lurCollection.get('1'))).to.be(true);
           });
 
           describe('that yields a syncing model', function() {
-            var server;
-
             beforeEach(function() {
-              server = sinon.fakeServer.create();
-              server.respondWith('GET', '/api/lur/2',
-                                 [ 200,
-                                 { 'Content-Type': 'application/json' },
-                                 '{ "id": 2, "type": "lur", "remote": true }' ]);
               app.lurCollection.url = '/api/lur';
             });
 
-            afterEach(function() {
-              server.restore();
-            });
+            it('calls the controller handler when the model is ready', function(done) {
+              app.controllers[0].on('after:route', function() {
+                try {
+                  expect(app.controllers[0].receivesModel.callCount).to.be(1);
+                  expect(app.controllers[0].receivesModel.calledWith(app.lurCollection.get(2))).to.be(true);
+                  done();
+                } catch(e) {
+                  done(e);
+                }
+              });
 
-            it('calls the controller handler when the model is ready', function() {
               app.navigate('lur/2', { trigger: true });
               expect(app.controllers[0].receivesModel.callCount).to.be(0);
-              server.respond();
-              expect(app.controllers[0].receivesModel.callCount).to.be(1);
-              expect(app.controllers[0].receivesModel.calledWith(app.lurCollection.get(2))).to.be(true);
             });
           });
         });
 
         describe('with compound associations', function() {
-          it('passes a model-key value and a model', function() {
+          it('passes a model-key value and a model', function(done) {
+            app.controllers[0].on('after:route', function() {
+              try {
+                expect(app.controllers[0].receivesBarAndModel.getCall(0).calledWith(
+                  'baz', app.lurCollection.get('1'))).to.be(true);
+                done();
+              } catch(e) {
+                done(e);
+              }
+            });
             app.navigate('foo/bar/lur/1', { trigger: true });
-            expect(app.controllers[0].receivesBarAndModel.getCall(0).calledWith(
-                'baz', app.lurCollection.get('1'))).to.be(true);
           });
         });
 
         describe('when an optional type is specified', function() {
           it('uses that type to resolve the resource instead of the fragment',
-             function() {
-            app.navigate('lur/1/bing/1', { trigger: true });
-            var model = app.lurCollection.get('1');
-            var call = app.controllers[0].receivesModelAndModel.getCall(0);
+             function(done) {
+            app.controllers[0].on('after:route', function() {
+              try {
+                var model = app.lurCollection.get('1');
+                var call = app.controllers[0].receivesModelAndModel.getCall(0);
 
-            expect(call.calledWith(model, model)).to.be(true);
+                expect(call.calledWith(model, model)).to.be(true);
+                done();
+              } catch(e) {
+                done(e);
+              }
+            });
+
+            app.navigate('lur/1/bing/1', { trigger: true });
           });
         });
       });

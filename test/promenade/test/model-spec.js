@@ -185,7 +185,7 @@ define(['promenade', 'promenade/model'],
 
         app = new MyApp();
 
-        app.fooCollection.add([{ id: 1, val: 'a' }, { id: 2, val: 'b' }]);
+        app.fooCollection.add([{ id: 1, val: 'a' }, { id: 2, val: 'b' }], { merge: true });
       });
 
       describe('and a type is declared', function() {

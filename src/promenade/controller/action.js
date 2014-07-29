@@ -1,10 +1,11 @@
-define(['promenade/object', 'underscore', 'promise'],
-        function (PromenadeObject, _, Promise) {
+define(['promenade/object', 'underscore', 'promise', 'backbone'],
+        function (PromenadeObject, _, Promise, Backbone) {
   'use strict';
 
   var ControllerAction = PromenadeObject.extend({
-    initialize: function (parentAction) {
-      this._parentAction = parentAction;
+    initialize: function (options) {
+      this._controller = options.controller;
+      this._parentAction = options.parentAction;
       this._fragment = '';
       this._verb = '';
       this._type = '';
@@ -87,7 +88,7 @@ define(['promenade/object', 'underscore', 'promise'],
     },
 
     getRoute: function () {
-      return this.getPathname() + ControllerAction.QUERY_STRING_MATCHER;
+      return this.getPathname();
     },
 
     hasFragment: function () {
@@ -111,7 +112,10 @@ define(['promenade/object', 'underscore', 'promise'],
     },
 
     fork: function () {
-      var child = new ControllerAction(this);
+      var child = new ControllerAction({
+        controller: this._controller,
+        parentAction: this
+      });
       this._children.push(child);
       return child;
     },
@@ -130,11 +134,11 @@ define(['promenade/object', 'underscore', 'promise'],
       this._queryParameters[key] = type;
     },
 
-    createRouteHandlerForController: function (controller) {
+    createRouteHandlerForController: function () {
       var action = this;
+      var controller = this._controller;
       var actionHandler = action.getHandler();
       var controllerHandler = controller[actionHandler];
-      //var actionLineage;
       var parameterValueActions;
       var queryValueGenerators;
 
@@ -144,13 +148,12 @@ define(['promenade/object', 'underscore', 'promise'],
         };
       }
 
-      //actionLineage = action.getLineage();
       parameterValueActions = action.getParameterValueLineage();
       queryValueGenerators = action.getQueryValueGenerators();
 
       return function () {
         var rawParameters = Array.prototype.slice.call(arguments);
-        var rawQueryString = rawParameters.pop();
+        var rawQueryString = action.fragmentHasSearchString() ? rawParameters.pop() : '';
         var rawQueryHash = action.parseQueryString(rawQueryString);
         var queryValues = {};
 
@@ -191,6 +194,7 @@ define(['promenade/object', 'underscore', 'promise'],
 
             parameters.push(queryValues);
 
+            controller.currentAction = action;
             result = controller[actionHandler].apply(controller, parameters);
             controller.trigger('after:route', controller, action, result);
 
@@ -239,9 +243,13 @@ define(['promenade/object', 'underscore', 'promise'],
 
         if (verb === ControllerAction.verbs.SHOW) {
           model = model.get(value);
+        } else if (_.result(model, 'needsSync') === true) {
+          model.fetch();
         }
 
-        model = _.result(model, 'syncs') || model;
+        if (_.result(model, 'isSyncing') === true) {
+          model = _.result(model, 'syncs') || model;
+        }
 
         return Promise.resolve(model);
       };
@@ -372,6 +380,13 @@ define(['promenade/object', 'underscore', 'promise'],
       };
     },
 
+    fragmentHasSearchString: function() {
+      var controller = this._controller;
+      var matcher = ControllerAction.SEARCH_STRING_MATCHER;
+
+      return matcher.test(controller.getFragment());
+    },
+
     parseQueryString: function(queryString) {
       var parts;
 
@@ -401,7 +416,7 @@ define(['promenade/object', 'underscore', 'promise'],
       INDEX: 'index',
       HANDLE: 'handle'
     },
-    QUERY_STRING_MATCHER: '(?:query)'
+    SEARCH_STRING_MATCHER: /[^?]*\?.+$/
   });
 
   return ControllerAction;

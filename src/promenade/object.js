@@ -13,7 +13,7 @@ define(['backbone', 'underscore', 'promenade/queue'],
   // own contructor behavior.
   var PromenadeObject = function(options) {
     this.options = options || {};
-    this.initialize(options);
+    this.initialize.apply(this, arguments);
   };
 
   // ``Promenade.Object`` re-purposes Backbone's ``extend`` static method to

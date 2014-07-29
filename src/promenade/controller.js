@@ -15,7 +15,9 @@ define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation', 'p
     initialize: function(options) {
 
       this.app = options && options.app;
-      this.rootAction = new ControllerAction();
+      this.rootAction = new ControllerAction({
+        controller: this
+      });
 
       // Routes are defined immediately.
       this.defineRoutes.call(this.rootAction.getMediator());
@@ -109,6 +111,46 @@ define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation', 'p
     // instantiated.
     defineRoutes: function() {},
 
+    redirect: function(route, options) {
+      var searchString = '';
+
+      options = _.defaults(options || {}, {
+        trigger: true,
+        replace: true,
+        forwardSearch: true
+      });
+
+      if (options.forwardSearch) {
+        searchString = this.getSearchString();
+      }
+
+      return this.app.navigate(route + searchString, options);
+    },
+
+    getSearchString: function() {
+      var routeExpression;
+      var searchString;
+      var match;
+
+      if (!this.currentAction) {
+        return '';
+      }
+
+      routeExpression = this.app._routeToRegExp(this.currentAction.getRoute());
+      match = this.getFragment().match(routeExpression);
+
+      searchString = match ? match.pop() : '';
+
+      if (!searchString) {
+        return '';
+      }
+
+      return '?' + searchString;
+    },
+
+    getFragment: function() {
+      return Backbone.history.getFragment();
+    }
   }, {
     state: {
       ACTIVE: 'active',

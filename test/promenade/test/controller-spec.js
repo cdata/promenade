@@ -331,6 +331,8 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
           it('yields a whole collection as an argument', function(done) {
             app.controllers[0].on('after:route', function() {
               try {
+                var args = app.controllers[0].receivesCollection.firstCall.args;
+
                 expect(app.controllers[0].receivesCollection.callCount).to.be(1);
                 expect(app.controllers[0].receivesCollection.getCall(0).calledWith(app.lurCollection))
                     .to.be(true);

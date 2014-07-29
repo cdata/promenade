@@ -331,25 +331,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
 
         return controller;
       }, this);
-    },
-
-    // TODO: Remove this when we update to Backbone >= 1.1.0
-    _routeToRegExp: (function () {
-      var optionalParam = /\((.*?)\)/g;
-      var namedParam    = /(\(\?)?:\w+/g;
-      var splatParam    = /\*\w+/g;
-      var escapeRegExp  = /[\-{}\[\]+?.,\\\^$|#\s]/g;
-
-      return function(route) {
-        route = route.replace(escapeRegExp, '\\$&')
-                     .replace(optionalParam, '(?:$1)?')
-                     .replace(namedParam, function(match, optional){
-                       return optional ? match : '([^\/?]+)';
-                     })
-                     .replace(splatParam, '(.*?)');
-        return new RegExp('^' + route + '$');
-      };
-    })()
+    }
   });
 
   _.extend(Application.prototype, InflectorApi);

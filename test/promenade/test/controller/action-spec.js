@@ -10,9 +10,29 @@ define(['backbone', 'promenade', 'promenade/controller/action'],
 
     describe('when created without a parent context', function () {
       var controllerActionWithoutParent;
+      var controller;
+      var theController;
 
       beforeEach(function () {
-        controllerActionWithoutParent = new ControllerAction();
+        controller = {
+          app: {
+            getResource: function () {}
+          },
+          setActive: function () {},
+          trigger: function () {},
+          fooRoute: function () {},
+          fooBarRoute: function () {},
+          quxRoute: function () {},
+          getFragment: sinon.stub()
+        };
+
+        controller.getFragment.returns('');
+
+        theController = sinon.mock(controller);
+
+        controllerActionWithoutParent = new ControllerAction({
+          controller: controller
+        });
       });
 
       it('has an empty pathname', function () {
@@ -82,7 +102,7 @@ define(['backbone', 'promenade', 'promenade/controller/action'],
             });
 
             it('will yield the correct Backbone route string', function () {
-              expect(relatedAction.getRoute()).to.be('foo/:foo(?:query)');
+              expect(relatedAction.getRoute()).to.be('foo/:foo');
             });
           });
         });
@@ -112,7 +132,7 @@ define(['backbone', 'promenade', 'promenade/controller/action'],
             });
 
             it('has a route that is based on it\'s own pathname', function () {
-              expect(nestedRelatedAction.getRoute()).to.be('foo/:foo/bar/:bar(?:query)');
+              expect(nestedRelatedAction.getRoute()).to.be('foo/:foo/bar/:bar');
             });
           });
         });
@@ -159,26 +179,11 @@ define(['backbone', 'promenade', 'promenade/controller/action'],
               done(e);
             });
           };
-          var controller;
           var fooAction;
           var fooBarAction;
           var quxAction;
-          var theController;
 
           beforeEach(function () {
-            controller = {
-              app: {
-                getResource: function () {}
-              },
-              setActive: function () {},
-              trigger: function () {},
-              fooRoute: function () {},
-              fooBarRoute: function () {},
-              quxRoute: function () {}
-            };
-
-            theController = sinon.mock(controller);
-
             mediatorInterface.query('foo');
 
             mediatorInterface.show('foo', 'fooRoute', function () {
@@ -237,6 +242,8 @@ define(['backbone', 'promenade', 'promenade/controller/action'],
             it('passes a provided optional query parameter through to the handler', function (done) {
               var handler = fooAction.createRouteHandlerForController(controller);
 
+              controller.getFragment.returns('foo/1?foo=1');
+
               handler(1, 'foo=1').then(function () {
                 var args = controller.fooRoute.firstCall.args;
 
@@ -252,6 +259,8 @@ define(['backbone', 'promenade', 'promenade/controller/action'],
 
             it('does not pass unrecognized query parameters through to the handler', function (done) {
               var handler = fooAction.createRouteHandlerForController(controller);
+
+              controller.getFragment.returns('foo/1?foo=1&bar=2');
 
               handler(1, 'foo=1&bar=2').then(function () {
                 var args = controller.fooRoute.firstCall.args;

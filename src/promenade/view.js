@@ -13,6 +13,12 @@ define(['jquery', 'backbone', 'templates', 'underscore', 'promenade/region',
   // relationships.
   var View = Backbone.View.extend({
 
+    constructor: function(options) {
+      options = options || {};
+      this.options = options;
+      return Backbone.View.apply(this, arguments);
+    },
+
     // Upon initialization, the ``View`` instance takes stock of optional
     // ``template`` and ``collection`` settings. If a ``template`` is defined,
     // either at the class level or overridden in the options, a template

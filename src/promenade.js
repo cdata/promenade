@@ -2,11 +2,11 @@
   'use strict';
 
   define(['promenade/view', 'promenade/view/collection', 'promenade/view/form',
-          'promenade/model', 'promenade/controller', 'promenade/application',
-          'promenade/region', 'promenade/object', 'promenade/collection',
-          'promenade/delegation', 'promenade/sync', 'promenade/queue',
-          'promenade/inflector', 'promenade/state', 'promise'],
-         function(View, CollectionView, FormView, Model,  Controller,
+          'promenade/model', 'promenade/controller', 'promenade/controller/action',
+          'promenade/application', 'promenade/region', 'promenade/object',
+          'promenade/collection', 'promenade/delegation', 'promenade/sync',
+          'promenade/queue', 'promenade/inflector', 'promenade/state', 'promise'],
+         function(View, CollectionView, FormView, Model,  Controller, ControllerAction,
                   Application, Region, PromenadeObject, Collection,
                   DelegationApi, SyncApi, QueueApi, InflectorApi, StateMachineApi, Promise) {
     return {
@@ -16,6 +16,7 @@
       CollectionView: CollectionView,
       FormView: FormView,
       Controller: Controller,
+      ControllerAction: ControllerAction,
       Application: Application,
       Region: Region,
       Delegation: DelegationApi,

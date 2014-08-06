@@ -53,6 +53,7 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       this.resources = {};
 
       this._needsSync = options.needsSync !== false;
+      this._setOperations = 0;
 
       this.activateDelegation();
 
@@ -86,7 +87,7 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
         fetch: true
       };
 
-      if (this._performingSetOperation) {
+      if (this._isPerformingSetOperation()) {
         options.fetch = false;
       }
       // If ``get`` receives an ``Array`` of ``id`` values as the first
@@ -146,11 +147,13 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
         remove: false
       }, _.result(this, 'setDefaults')));
 
-      this._performingSetOperation = true;
+      //this._performingSetOperation = true;
+      this._pushSetOperation();
 
       result = Backbone.Collection.prototype.set.call(this, models, options);
 
-      this._performingSetOperation = false;
+      //this._performingSetOperation = false;
+      this._popSetOperation();
 
       return result;
     },
@@ -214,6 +217,20 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
       this.resources[url] = resource;
 
       return resource;
+    },
+
+    _pushSetOperation: function() {
+      ++this._setOperations;
+    },
+
+    _popSetOperation: function() {
+      if (this._isPerformingSetOperation()) {
+        --this._setOperations;
+      }
+    },
+
+    _isPerformingSetOperation: function() {
+      return !!this._setOperations;
     },
 
     _isCandidateForFetch: function(model) {

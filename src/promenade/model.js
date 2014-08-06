@@ -140,11 +140,18 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
     // expected to nest the intended data for a client ``Model`` in
     // a property that matches the defined ``namespace``.
     parse: function(data) {
+      var namespace;
+
       if(typeof data === 'undefined') {
         return {};
       }
 
-      var namespace = _.result(this, 'namespace');
+      if (data.id !== undefined && data.id !== null &&
+          data.type !== undefined && data.type !== null) {
+        return data;
+      }
+
+      namespace = _.result(this, 'namespace');
 
       if (namespace) {
         if (!(namespace in data)) {

@@ -9,6 +9,7 @@ define(['backbone', 'underscore'],
     configure: function(options) {
       this._prototype = this.constructor.prototype;
 
+      this.url = options.url || this.url;
       this.superset = options.superset;
       this.iterator = options.iterator;
       this.alwaysRefresh = options.alwaysRefresh === true;

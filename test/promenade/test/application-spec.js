@@ -103,25 +103,50 @@ define(['promenade', 'promenade/application'],
           });
 
           describe('and its subview dispathes a navigate event', function() {
-            it('bubbles the event to the application, which navigates', function() {
+            it('bubbles the event to the application, which navigates', function(done) {
+              var controller = app.controllers[0];
+
+              controller.on('after:route', function () {
+                try {
+                  expect(app.controllers[0].foobar.callCount).to.be(1);
+                  done();
+                } catch (e) {
+                  done(e);
+                }
+              });
+
               mySubview.trigger('navigate', 'foo', { trigger: true });
-              expect(app.controllers[0].foobar.callCount).to.be(1);
             });
           });
 
           describe('and a route-link is clicked in DOM tree of the root', function() {
-            it('triggers navigation to the route defined by the href', function() {
+            it('triggers navigation to the route defined by the href', function(done) {
               mySubview.$el.click();
-              expect(app.controllers[0].foobar.callCount).to.be(1);
+
+              app.controllers[0].on('after:route', function() {
+                try {
+                  expect(app.controllers[0].foobar.callCount).to.be(1);
+                  done();
+                } catch (e) {
+                  done(e);
+                }
+              });
             });
 
-            it('triggers navigation to the route defined by data-href', function() {
+            it('triggers navigation to the route defined by data-href', function(done) {
+              app.controllers[0].on('after:route', function() {
+                try {
+                  expect(app.controllers[0].foobar.callCount).to.be(1);
+                  done();
+                } catch (e) {
+                  done(e);
+                }
+              });
+
               mySubview.$el.attr('href', '');
               mySubview.$el.data('href', 'foo');
 
               mySubview.$el.click();
-
-              expect(app.controllers[0].foobar.callCount).to.be(1);
             });
           });
         });
@@ -254,9 +279,16 @@ define(['promenade', 'promenade/application'],
         });
 
         it('calls a named method of the controller when specified',
-           function() {
+           function(done) {
+          app.controllers[0].on('after:route', function() {
+            try {
+              expect(app.controllers[0].foobar.callCount).to.be(1);
+              done();
+            } catch (e) {
+              done(e);
+            }
+          });
           app.navigate('foo', { trigger: true });
-          expect(app.controllers[0].foobar.callCount).to.be(1);
         });
       });
     });

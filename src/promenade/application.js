@@ -314,11 +314,12 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
         var controller = new Controller({
           app: this
         });
+        var backboneRoutes = controller.getBackboneRoutes();
 
         // When a ``Controller`` is instantiated, it defines the ``routes`` that
         // it can support. These ``routes`` are each mapped to a ``route`` in
         // ``Application``, which is a ``Backbone.Router`` derivative.
-        _.each(controller.routes, function(route) {
+        _.each(backboneRoutes, function(route) {
           this.route(route.fragment, route.fragment, _.bind(function() {
             _.each(this.controllers, function(_controller, index) {
               if (_controller !== controller && !_controller.handlesRoute(route.fragment)) {

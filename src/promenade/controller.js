@@ -13,29 +13,9 @@ define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation', 'p
     // When instantiated, the only option a ``Controller`` expects is ``app``,
     // which is a reference to the parent ``Application`` instance.
     initialize: function(options) {
+      var rootAction = this.getRootAction();
 
       this.app = options && options.app;
-      this.rootAction = new ControllerAction({
-        controller: this
-      });
-
-      // Routes are defined immediately.
-      this.defineRoutes.call(this.rootAction.getMediator());
-      this.actions = this.rootAction.flatten();
-
-      this.routes = [];
-      this._routeMatchers = [];
-
-      _.each(this.actions, function (action) {
-        if (!action.hasHandler()) {
-          return;
-        }
-        this._routeMatchers.push(this.app._routeToRegExp(action.getRoute()));
-        this.routes.unshift({
-          fragment: action.getRoute(),
-          handler: action.createRouteHandlerForController(this)
-        });
-      }, this);
 
       this._state = Controller.state.INACTIVE;
     },
@@ -49,6 +29,53 @@ define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation', 'p
 
     // Similarly, when the state changes to ``inactive``, this method is called.
     deactivate: function() {},
+
+    getActions: function() {
+      var rootAction;
+
+      if (!this.actions) {
+        rootAction = this.getRootAction();
+
+        this.defineRoutes.call(rootAction.getMediator());
+        this.actions = _.filter(rootAction.flatten(), function(action) {
+          return action.hasHandler();
+        });
+      }
+
+      return this.actions;
+    },
+
+    getRootAction: function() {
+      if (!this.rootAction) {
+        this.rootAction = new ControllerAction({
+          controller: this
+        });
+      }
+
+      return this.rootAction;
+    },
+
+    getBackboneRoutes: function() {
+      if (!this.backboneRoutes) {
+        this.backboneRoutes = _.invoke(this.getActions(), 'toBackboneRoute').reverse();
+      }
+
+      return this.backboneRoutes;
+    },
+
+    getRouteMatchers: function() {
+      var routes;
+
+      if (!this.routeMatchers) {
+        routes = _.invoke(this.getActions(), 'getRoute');
+
+        this.routeMatchers = _.map(routes, function(route) {
+          return this.app._routeToRegExp(route);
+        }, this);
+      }
+
+      return this.routeMatchers;
+    },
 
     // ``_activate`` and ``_deactivate`` exist the handle kicking off state
     // transition whenever the state changes between ``active`` and
@@ -74,11 +101,12 @@ define(['backbone', 'underscore', 'promenade/object', 'promenade/delegation', 'p
     // Navigation events are observed to determine when it is appropriate to
     // transition the state of the ``Controller``.
     handlesRoute: function(route) {
+      var routeMatchers = this.getRouteMatchers();
       var index;
       var length;
 
-      for (index = 0, length = this._routeMatchers.length; index < length; ++index) {
-        if (this._routeMatchers[index].test(route)) {
+      for (index = 0, length = routeMatchers.length; index < length; ++index) {
+        if (routeMatchers[index].test(route)) {
           return true;
         }
       }

@@ -134,7 +134,8 @@ define(['backbone', 'promenade', 'promenade/controller', 'promenade/application'
 
       it('defines a series of routes', function() {
         var count = 0;
-        for (var routeString in myController.routes) {
+        var routes = myController.getBackboneRoutes();
+        for (var routeString in routes) {
           ++count;
         }
         expect(count).to.be.eql(NUMBER_OF_CONTROLLER_ROUTES);

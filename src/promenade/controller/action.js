@@ -61,7 +61,7 @@ define(['promenade/object', 'underscore', 'promise', 'backbone'],
     getPathnameRoot: function () {
       var pathnameRoot = '';
 
-      if (this.getParentAction()) {
+      if (this.hasParentAction()) {
         pathnameRoot += this.getParentAction().getPathname();
       }
 
@@ -132,6 +132,13 @@ define(['promenade/object', 'underscore', 'promise', 'backbone'],
 
     allowQueryParameter: function (key, type) {
       this._queryParameters[key] = type;
+    },
+
+    toBackboneRoute: function() {
+      return {
+        fragment: this.getRoute(),
+        handler: this.createRouteHandlerForController()
+      };
     },
 
     createRouteHandlerForController: function () {

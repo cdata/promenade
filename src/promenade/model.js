@@ -185,6 +185,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
     // instances.
     set: function(key, value, options) {
       var structure = _.result(this, 'structure');
+      var result;
       var attrs;
       var attr;
       var Type;
@@ -259,6 +260,8 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
         }
       }
 
+      result = Backbone.Model.prototype.set.call(this, attrs, options);
+
       if (resourceAdded) {
         this.trigger('resource', this);
         this.trigger('change', this);
@@ -266,7 +269,7 @@ define(['backbone', 'require', 'promenade/collection/retainer', 'promenade/deleg
 
       // Once our attributes being set have been formatted appropriately,
       // the attributes are sent through the normal Backbone ``set`` method.
-      return Backbone.Model.prototype.set.call(this, attrs, options);
+      return result;
     },
 
     // The default ``get`` behavior has been expanded to automatically evaluate

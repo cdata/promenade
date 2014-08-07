@@ -108,6 +108,10 @@ define(['backbone', 'underscore', 'require', 'promenade/model',
           return model;
         }
       } else {
+        if (this._isPerformingSetOperation()) {
+          return;
+        }
+
         if (_.isObject(id) && id instanceof Backbone.Model) {
           return;
         }

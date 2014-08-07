@@ -18,6 +18,9 @@ define(['backbone', 'promenade', 'promenade/controller/action'],
           app: {
             getResource: function () {}
           },
+          isActive: function() {
+            return true;
+          },
           setActive: function () {},
           trigger: function () {},
           fooRoute: function () {},

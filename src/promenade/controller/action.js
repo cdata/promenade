@@ -199,6 +199,10 @@ define(['promenade/object', 'underscore', 'promise', 'backbone'],
           return queryValuesBecomeAvailable.then(function () {
             var result;
 
+            if (!controller.isActive()) {
+              return;
+            }
+
             parameters.push(queryValues);
 
             controller.currentAction = action;

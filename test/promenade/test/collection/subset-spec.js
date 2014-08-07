@@ -234,6 +234,25 @@ define(['backbone', 'promenade', 'promenade/collection/subset'],
                 expect(superset.length).to.be(11);
                 expect(subset.at(5)).to.be(superset.at(10));
               });
+
+              describe('the subset', function() {
+                it('triggers an add event when the model is fully added', function(done) {
+                  subset.once('add', function() {
+                    var model;
+
+                    try {
+                      model = subset.get(12);
+                      expect(model.id).to.be(12);
+                      expect(model.get('foo')).to.be('foo');
+                      done();
+                    } catch(e) {
+                      done(e);
+                    }
+                  });
+
+                  superset.add({ id: 12, foo: 'foo'});
+                });
+              });
             });
 
             describe('that do not match the subset', function() {

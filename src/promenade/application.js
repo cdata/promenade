@@ -56,12 +56,37 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
       }, this));
     },
 
-    //routeFor: function() {
-      //var args = Array.prototype.slice.call(arguments);
-    //},
+    getSearchString: function() {
+
+      var searchString = '';
+      var currentFragment = Backbone.history.getFragment();
+
+      if (currentFragment.indexOf('?') !== -1) {
+        searchString = currentFragment.split('?').pop();
+      }
+
+      return searchString ? '?' + searchString : searchString;
+    },
+
+    redirect: function(route, options) {
+      options = _.defaults(options || {}, {
+        replace: true,
+        forwardSearch: true
+      });
+
+      return this.navigate(route, options);
+    },
 
     navigate: function(fragment, options) {
       fragment = this.parseFragment(fragment);
+
+      options = _.defaults(options || {}, {
+        trigger: true
+      });
+
+      if (options.forwardSearch) {
+        fragment += this.getSearchString();
+      }
 
       if (this.updateLocation === false) {
         return Backbone.history.loadUrl(fragment);
@@ -173,6 +198,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
 
         // Otherwise the current ``view`` is removed.
         this.stopListening(this.view, 'navigate', this.navigate);
+        this.stopListening(this.view, 'redirect', this.redirect);
         this.view.remove();
       }
 
@@ -190,6 +216,7 @@ define(['backbone', 'underscore', 'jquery', 'require', 'promenade/inflector'],
       // Finally, the new ``view`` instance is rendered and appended to the
       // ``rootElement`` of the ``Application`` instance.
       this.listenTo(view, 'navigate', this.navigate);
+      this.listenTo(view, 'redirect', this.redirect);
       view.render();
       this.$rootElement.append(view.$el);
 

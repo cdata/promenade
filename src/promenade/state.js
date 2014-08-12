@@ -39,6 +39,10 @@ define(['backbone', 'underscore'],
       if (_.isFunction(method)) {
         method.apply(this, args);
       }
+
+      if (_.isFunction(this.trigger)) {
+        this.trigger('enter-state:' + stateName, this);
+      }
     },
 
     isValidTransition: function (newState) {
